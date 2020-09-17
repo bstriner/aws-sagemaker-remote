@@ -159,39 +159,36 @@ Any arguments passed to your script locally on the command line are passed to yo
 
 
 * Pass a list of kwargs dictionaries to  ``additional_arguments``
+
   .. code-block:: python
 
-     sagemaker_processing_main(
-         #...
-         additional_arguments = [
-           {
-             'dest': '--filter-width',
-             'default':32,
-             'help':'Filter width'
-           },
-           {
-             'dest':'--filter-height',
-             'default':32,
-             'help':'Filter height'
-           }
-         ]
-     )
+    sagemaker_processing_main(
+      #...
+      additional_arguments = [
+        {
+          'dest': '--filter-width',
+          'default':32,
+          'help':'Filter width'
+        },
+        {
+          'dest':'--filter-height',
+          'default':32,
+          'help':'Filter height'
+        }
+      ]
+    )
 
 * Pass a callback to ``argparse_callback``
-  ```python
-  from argparse import ArgumentParser
-  def argparse_callback(parser:ArgumentParser):
-    parser.add_argument(
-  .. code-block::
 
-     '--filter-width',
-     default=32,
-     help='Filter width')
-    parser.add_argument(
-  .. code-block::
+  .. code-block:: python
 
-     '--filter-height',
-     default=32,
-     help='Filter height')
-
-  ```
+    from argparse import ArgumentParser
+    def argparse_callback(parser:ArgumentParser):
+      parser.add_argument(
+      '--filter-width',
+      default=32,
+      help='Filter width')
+      parser.add_argument(
+      '--filter-height',
+      default=32,
+      help='Filter height')
