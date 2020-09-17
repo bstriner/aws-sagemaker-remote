@@ -4,5 +4,7 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"python.pythonPath": "c:\\Projects\\venv\\Scripts\\python.exe"
+	}
 }
