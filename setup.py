@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 import os
-with open(os.path.join(__file__, '../README.rst'), encoding='utf-8') as f:
+with open(os.path.abspath(os.path.join(__file__, '../README.rst')), encoding='utf-8') as f:
     long_description = f.read()
 setup(name='aws-sagemaker-remote',
       version='0.0.1',
