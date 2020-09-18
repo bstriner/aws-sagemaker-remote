@@ -74,40 +74,32 @@ The environment can be customized in multiple ways.
 
 * Instance
 
-  * Function argument ``instance``
-  * Command line argument ``--sagemaker-instance``
+  * Function argument ``training_instance``
+  * Command line argument ``--sagemaker-training-instance``
   * Select instance type of machine running the container
 
 * Image
 
-  * Function argument ``image``
-  * Command line argument ``--sagemaker-image``
-  * Accepts URI of Docker container image on ECR to run
+  * Function argument ``training_image``
+  * Command line argument ``--sagemaker-training-image``
+  * Accepts URI of Docker container image on ECR or DockerHub to run
   * Build a custom Docker image for major customizations
-
-* Configuration script
-
-  * Function argument ``configuration_script``
-  * Command line argument ``--sagemaker-configuration-script``
-  * Accepts path to a text file. Will upload text file to S3 and run ``source [file]``.
-  * Batch script for minor customization, e.g., ``export MYVAR=value`` or ``yum install -y mypackage``
 
 * Requirements file
 
-  * Function argument ``requirements``
-  * Command line argument ``--sagemaker-requirements``
-  * Accepts path to a text file. Will upload text file to S3 and run ``python -m pip install -r [file]``
+  * Create a file named ``requirements.txt`` in your ``source`` directory
+  * ``source`` directory defaults to the directory containing your script but can be overridden
   * Use for installing Python packages by listing one on each line. Standard ``requirements.txt`` file format [https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format]
 
-* Module uploads
+* Dependencies
 
-  * Function argument ``modules``
+  * Function argument ``dependencies``
 
     * Dictionary of ``[key]->[value]``
     * Each key will create command line argument ``--key`` that defaults to ``value``
 
   * Each ``value`` is a directory containing a Python module that will be uploaded to S3, downloaded to SageMaker, and put on the PYTHONPATH
-  * For example, if directory ``mymodule`` contains the files ``__init__.py`` and ``myfile.py`` and ``myfile.py`` contains ``def myfunction():...``\ , pass ``modules={'mymodule':'path/to/mymodule'}`` to ``sagemaker_processing_main`` and then use ``from mymodule.myfile import myfunction`` in your script.
+  * For example, if directory ``mymodule`` contains the files ``__init__.py`` and ``myfile.py`` and ``myfile.py`` contains ``def myfunction():...``\ , pass ``dependencies={'mymodule':'path/to/mymodule'}`` to ``sagemaker_processing_main`` and then use ``from mymodule.myfile import myfunction`` in your script.
   * Use module uploads for supporting code that is not being installed from packages.
 
 Additional arguments
@@ -120,7 +112,7 @@ Any arguments passed to your script locally on the command line are passed to yo
 
   .. code-block:: python
 
-    sagemaker_processing_main(
+    sagemaker_training_main(
       #...
       additional_arguments = [
         {
@@ -150,8 +142,10 @@ Any arguments passed to your script locally on the command line are passed to yo
       '--filter-height',
       default=32,
       help='Filter height')
-
-
+    sagemaker_training_main(
+      # ...
+      argparse_callback=argparse_callback
+    )
 
 
 Command-Line Arguments

@@ -152,6 +152,10 @@ Any arguments passed to your script locally on the command line are passed to yo
       '--filter-height',
       default=32,
       help='Filter height')
+    sagemaker_training_main(
+      # ...
+      argparse_callback=argparse_callback
+    )
 
 
 

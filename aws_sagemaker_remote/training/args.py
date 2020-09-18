@@ -11,7 +11,7 @@ Set to S3 path and it will be downloaded to SageMaker.
 """
 TRAINING_IMAGE = '683880991063.dkr.ecr.us-east-1.amazonaws.com/columbo-sagemaker-training:latest'
 TRAINING_INSTANCE = 'ml.m5.large'
-TRAINING_ROLE = 'arn:aws:iam::683880991063:role/ColumboSageMaker'
+TRAINING_ROLE = 'aws-sagemaker-remote-training-role'
 BASE_JOB_NAME = 'training-job'
 
 
@@ -109,14 +109,8 @@ def sagemaker_training_model_args(parser: argparse.ArgumentParser,
         default=model_dir,
         help='Directory to save final model (default: {})'.format(model_dir))
 
-    # bool_argument(
-    #    parser,
-    #    '--export-model',
-    #    default=export_model,
-    #    help='export final model (boolean, default: {})'.format(export_model))
 
-def sagemaker_training_args_for_docs():
+def sagemaker_training_parser_for_docs():
     parser = argparse.ArgumentParser()
     sagemaker_training_args(parser=parser)
     return parser
-    
