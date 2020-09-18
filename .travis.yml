@@ -1,0 +1,16 @@
+language: python
+python:
+- '3.7'
+install:
+- pip install -r requirements.txt
+- pip install .
+script:
+- pytest
+deploy:
+  provider: pypi
+  username: "__token__"
+  distributions: sdist bdist_wheel
+  on:
+    tags: true
+  password:
+    secure: jhZQLHE0T9pjg2cKnKtESL6vK3Lzidya2SzKucEMxYHdXnMZrzXy9CEYB2R0eEGqrXFre+4yzB6GIhl3Zsdw4H6B2aN06GrgsZIvJLya+AaxhM/+tGlh0+wmK5VY7TIa68QCVyoA8GRKJwR/3RixCIKEOvoByY86Mgvr35qG1SQiahMANHA5EmVa79nCvwDZFfn0/nTH6oakRhXQ5QdsCDIxvF0x+kSKLTnFv2mNEeBdAftNniYKB9qPVTLtExIRaHuOGTnFFZ2xOPl/y3yeGa5Xne1eLQgt+H/Ab5TU0rIjHww/nJY/8ijXPS+Lw1kQ/rZ6UO4DNZ69qNigWMjOZxYk7wYnTIioM4fT3VNJk97xIU+LzzN6RKgPSTVJS/c+Z4B08p3RCEt/i0NYw1vYcgzrE5JWB2jFts5OzrVoT8gkJFwEZdMTSlCQcJsGutCAOuig48/IzXvg0Xl/qZVB5+LYFZ7rU03xLsB+V7WzUYW2KK5+bsNWHAvSBMNE6tl0thNl5LjQDYmI4B9jI5MnozwNOIDLi3PFoCwQCTy+CmY2ztWMhUQoD+5GBpe/Ir5PBxAbqd2ie4KQUqWkCCVWk5t3A84+6ptgef7wt5KSO/AcsHE6PQbwDt4GnDernJ7TAhdX7Ja8NSEALmNUkYlFNlUzOIFKqPJX4bm3ruEKJTs=

@@ -113,7 +113,7 @@ def sagemaker_processing_module_args(parser: argparse.ArgumentParser, modules=No
 
 def sagemaker_processing_args(
     parser: argparse.ArgumentParser,
-    run: True,
+    run=False,
     profile=PROFILE,
     role=PROCESSING_ROLE,
     image=PROCESSING_IMAGE,
