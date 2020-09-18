@@ -192,3 +192,29 @@ Any arguments passed to your script locally on the command line are passed to yo
       '--filter-height',
       default=32,
       help='Filter height')
+
+
+Documentation
+-----------------
+
+View latest documentation at `ReadTheDocs <https://aws-sagemaker-remote.readthedocs.io/>`_
+
+Continuous Integration
+------------------------
+
+View continuous integration at `TravisCI <https://travis-ci.org/github/bstriner/aws-sagemaker-remote>`_
+
+
+PyPI
+------------------------
+
+View releases on `PyPI <https://pypi.org/project/aws-sagemaker-remote/>`_
+
+
+GitHub
+------------------------
+
+View source code on `GitHub <https://github.com/bstriner/aws-sagemaker-remote>`_
+
+GitHub tags are automatically released on ReadTheDocs, tested on TravisCI, and deployed to PyPI if successful.
+
