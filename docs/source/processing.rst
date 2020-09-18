@@ -22,7 +22,6 @@ Write a script with a ``main`` function that calls ``sagemaker_processing_main``
 
    if __name__ == '__main__':
        sagemaker_processing_main(
-           script=__file__,
            main=main,
            # ...
        )

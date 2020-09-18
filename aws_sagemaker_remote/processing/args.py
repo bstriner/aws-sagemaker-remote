@@ -146,11 +146,64 @@ def sagemaker_processing_args(
         Parser to configure
     script : str
         Path to script file to execute
+    run : bool, optional
+        Run on SageMaker. 
+        Set default for ``--sagemaker-run``.
+    wait : bool, optional
+        Wait for SageMaker processing to complete. 
+        Set default for ``--sagemaker-wait``.
+    profile : str, optional
+        AWS profile to use for session. 
+        Set default for ``--sagemaker-profile``.
+    role : str, optional
+        AWS IAM role name to use for processing. Will be created if it does not exist. 
+        Set default for ``--sagemaker-role``.
+    image : str, optional
+        URI of ECR Docker image to use for processing. 
+        Set default for ``--sagemaker-image``.
+    instance : str, optional
+        Type of instance to use for processing (e.g., ``ml.t3.medium``). 
+        Set default for ``--sagemaker-instance``.
+    inputs : dict(str,str), optional
+        Dictionary of input arguments.
+        For eack key and value, create an argument ``--key`` that defaults to value.
+
+        * Running locally, input arguments are unmodified.
+        * Running remotely, inputs are set to appropriate SageMaker mount points. Local inputs are uploaded automatically.
+    outputs : dict(str, tuple(str))
+        Dictionary of output arguments.
+        For eack key:
+
+            * Create an argument ``--key`` that defaults to value[0]. This controls an output path.
+            * Create an argument ``--key-s3`` that defaults to value[1]. This controls where output is stored on S3.
+              * Set to ``default`` to automatically create an output path based on the job name
+              * Set to an S3 URL to store output at a specific location on S3
+    modules : dict(str, str)
+        Dictionary of modules.
+        For eack key and value, create an argument ``--module-key`` that defaults to value. 
+        This controls the path of a dependency of your code.
+        The files at the given path will be uploaded to S3, downloaded to SageMaker, and put on PYTHONPATH.    
+    input_mount : str, optional
+        Local path on SageMaker container where inputs are downloaded.
+        Set default for ``--sagemaker-input-mount``.
+    output_mount : str, optional
+        Local path on SageMaker container where outputs are written before upload.
+        Set default for ``--sagemaker-outpu-mount``.
+    module_mount : str, optional
+        Local path on SageMaker container where source code is downloaded. Mount point is put on PYTHONPATH.
+        Set default for ``--sagemaker-module-mount``.
     base_job_name : str, optional
         Job name will be generated from ``base_job_name`` and a timestamp if ``job_name`` is not provided.
+        Set default for ``--sagemaker-base-job-name``.
     job_name : str, optional
-        Job name is used for tracking and organization. Generated from ``base_job_name`` if not provided.
+        Job name is used for tracking and organization. 
+        Generated from ``base_job_name`` if not provided.
         Use ``base_job_name`` and leave ``job_name`` blank for most use-cases.
+        Set default for ``--sagemaker-job-name``.
+    runtime_seconds: int, optional
+        Maximum in seconds before killing job.
+        Set default for ``--sagemaker-runtime-seconds``.
+
     """
     if additional_arguments is None:
         additional_arguments = []

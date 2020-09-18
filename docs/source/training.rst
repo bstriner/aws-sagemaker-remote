@@ -22,7 +22,6 @@ Write a script with a ``main`` function that calls ``sagemaker_training_main``.
 
    if __name__ == '__main__':
        sagemaker_training_main(
-           script=__file__,
            main=main,
            # ...
        )
