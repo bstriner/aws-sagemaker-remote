@@ -8,7 +8,7 @@ Welcome to aws-sagemaker-remote's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
 
    README <readme>
    processing

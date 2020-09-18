@@ -14,7 +14,7 @@ Write a script with a ``main`` function that calls ``sagemaker_processing_main``
 
 .. code-block:: python
 
-   from aws_sagemaker_remote.processing import sagemaker_processing_main
+   from aws_sagemaker_remote import sagemaker_processing_main
 
    def main(args):
        # your code here
@@ -28,6 +28,11 @@ Write a script with a ``main`` function that calls ``sagemaker_processing_main``
        )
 
 Pass function argument ``run=True`` or command line argument ``--sagemaker-run=True`` to run script remotely on SageMaker.
+
+* Many command-line arguments are automatically added. See :ref:`Processing Command-Line Arguments`.
+* Parameters to ``sagemaker_processing_main`` control what command-line arguments are automatically added
+  and the default values. See :meth:`aws_sagemaker_remote.processing.main.sagemaker_processing_main` and
+  :meth:`aws_sagemaker_remote.processing.args.sagemaker_processing_args`
 
 Processing Job Tracking
 -----------------------
@@ -92,7 +97,14 @@ The environment can be customized in multiple ways.
   * Function argument ``configuration_script``
   * Command line argument ``--sagemaker-configuration-script``
   * Accepts path to a text file. Will upload text file to S3 and run ``source [file]``.
-  * Batch script for minor customization, e.g., ``export MYVAR=value`` or ``yum install -y mypackage``
+  * Bash script file for minor customization, e.g., ``export MYVAR=value`` or ``yum install -y mypackage``
+
+* Configuration command
+
+  * Function argument ``configuration_command``
+  * Command line argument ``--sagemaker-configuration-command``
+  * Accepts a bash command to run.
+  * Bash command for minor customization, e.g., ``export MYVAR=value && yum install -y mypackage``
 
 * Requirements file
 
@@ -158,6 +170,7 @@ Any arguments passed to your script locally on the command line are passed to yo
     )
 
 
+.. _Processing Command-Line Arguments:
 
 Command-Line Arguments
 ----------------------
@@ -167,10 +180,31 @@ Command-Line Arguments
    :func: sagemaker_processing_parser_for_docs
    :prog: aws-sagemaker-remote-processing
 
-    --output
-        An output flag will be generated for each item in the :code:`outputs` parameter to :code:`sagemaker_processing_main`
         
-    --input
-        An input flag will be generated for each item in the :code:`input` parameter to :code:`sagemaker_processing_main`
+Example Code
+--------------
 
-        
+The following example creates a processor with no inputs and one output named ``output``.
+
+* Running the file without arguments will run locally. The argument ``--output`` sets the output directory.
+* Running the file with ``--sagemaker-run=yes`` will run on SageMaker. The argument ``--output`` is automatically set to a mountpoint
+  on SageMaker and outputs are uploaded to S3. Use ``--output-s3`` to set the S3 output path, or leave it as ``default`` to automatically
+  generate an appropriate path based on the job name.
+
+The example code uploads ``aws_sagemaker_remote`` from the local filesystem using the ``modules`` argument. Alternatively:
+
+* Add ``aws_sagemaker_remote`` to your Docker image.
+* Create a ``requirements.txt`` file including ``aws_sagemaker_remote``. 
+  Pass the path of the requirements file to the ``requirements`` function argument
+  or the ``--sagemaker-requirements`` command-line argument.
+* Create a bash script including ``pip install aws-sagemaker-remote``. 
+  Pass the path of the script to the ``configuration_script`` function argument
+  or the ``--sagemaker-configuration-script`` command-line argument.
+* Pass ``pip install aws-sagemaker-remote`` to the ``configuration_command`` function argument
+  or the ``--sagemaker-configuration-command`` command-line argument.
+
+See `mnist_processor.py <https://github.com/bstriner/aws-sagemaker-remote/blob/master/demo/mnist_processor.py>`_.
+
+.. literalinclude:: ../../demo/mnist_processor.py
+  :language: python
+

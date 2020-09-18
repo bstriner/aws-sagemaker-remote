@@ -18,7 +18,8 @@ from .args import sagemaker_processing_args
 PROCESSING_SCRIPT = os.path.abspath(os.path.join(__file__, '../processing.sh'))
 
 
-def sagemaker_processing_run(args, config, script):
+def sagemaker_processing_run(args, config):
+    script = args.sagemaker_script
     script = os.path.abspath(script)
     script = script.replace("\\", "/")
 
@@ -41,6 +42,7 @@ def sagemaker_processing_run(args, config, script):
         script=script,
         image=args.sagemaker_image,
         instance=args.sagemaker_instance,
+        base_job_name=args.sagemaker_base_job_name,
         job_name=args.sagemaker_job_name,
         volume_size=args.sagemaker_volume_size,
         python=args.sagemaker_python,
@@ -53,7 +55,8 @@ def sagemaker_processing_run(args, config, script):
             args, 'sagemaker_module_mount') else None,
         arguments=make_arguments(args=args, config=config),
         requirements=args.sagemaker_requirements,
-        configuration_script=args.sagemaker_configuration_script
+        configuration_script=args.sagemaker_configuration_script,
+        configuration_command=args.sagemaker_configuration_command
     )
 
 
@@ -93,7 +96,9 @@ def process(
     modules=None,
     requirements=None,
     configuration_script=None,
-    job_name=PROCESSING_JOB_NAME,
+    configuration_command=None,
+    base_job_name=PROCESSING_JOB_NAME,
+    job_name=None,
     image=PROCESSING_IMAGE,
     instance=PROCESSING_INSTANCE,
     volume_size=30,
@@ -186,6 +191,9 @@ def process(
             )
         )
 
+    if configuration_command and len(configuration_command) > 0:
+        env['AWS_SAGEMAKER_REMOTE_CONFIGURATION_COMMAND'] = configuration_command
+
     processor = ScriptProcessor(
         role,
         image_uri=image,
@@ -196,7 +204,7 @@ def process(
         # volume_kms_key=None,
         # output_kms_key=None,
         max_runtime_in_seconds=runtime_seconds,
-        base_job_name=job_name,
+        base_job_name=base_job_name,
         sagemaker_session=session,
         env=env,
         tags=[
@@ -206,7 +214,7 @@ def process(
             },
             {
                 "Key": "Name",
-                "Value": job_name
+                "Value": base_job_name
             }
         ]
         # network_config=None
@@ -227,12 +235,17 @@ def process(
         for name, dest in outputs.items()
     ]
     code = Path(PROCESSING_SCRIPT).as_uri()
+    if job_name is None or len(str(job_name).strip()) == 0:
+        job_name = None
+    else:
+        job_name = str(job_name).strip()
     processor.run(
         code=code,
         inputs=processing_inputs,
         outputs=processing_outputs,
         wait=wait,
         logs=logs,
+        job_name=job_name,
         arguments=arguments
     )
     return processor

@@ -17,6 +17,8 @@ BASE_JOB_NAME = 'training-job'
 
 def sagemaker_training_args(
     parser: argparse.ArgumentParser,
+    script,
+    source='',
     base_job_name=BASE_JOB_NAME,
     job_name='',
     profile=PROFILE,
@@ -32,11 +34,41 @@ def sagemaker_training_args(
     training_instance=TRAINING_INSTANCE,
     training_role=TRAINING_ROLE
 ):
+    r"""
+    Configure ``argparse.ArgumentParser`` for training scripts.
+
+    Parameters
+    ----------
+    parser : argparse.ArgumentParser
+        Parser to configure
+    script : str
+        Path to script file to execute
+    source : str, optional
+        Path of source directory to upload.
+        Must include ``script`` path.
+        Defaults to directory containing ``script`` if not provided.
+    base_job_name : str, optional
+        Job name will be generated from ``base_job_name`` and a timestamp if ``job_name`` is not provided.
+    job_name : str, optional
+        Job name is used for tracking and organization. Generated from ``base_job_name`` if not provided.
+        Use ``base_job_name`` and leave ``job_name`` blank for most use-cases.
+    """
     sagemaker_profile_args(parser=parser, profile=profile)
     bool_argument(parser, '--sagemaker-run', default=run,
                   help="Run training on SageMaker (yes/no default={})".format(run))
     bool_argument(parser, '--sagemaker-wait', default=run,
                   help="Wait for SageMaker training to complete and tail logs files (yes/no default={})".format(wait))
+    parser.add_argument(
+        '--sagemaker-script',
+        default=script,
+        help='Script to run on SageMaker. (default: [{}])'.format(script))
+    parser.add_argument(
+        '--sagemaker-source',
+        default=source,
+        help='Source to upload to SageMaker. '
+        'Must contain script. '
+        'If blank, default to directory containing script. '
+        '(default: [{}])'.format(source))
     parser.add_argument(
         '--sagemaker-training-instance',
         default=training_instance,
@@ -112,5 +144,6 @@ def sagemaker_training_model_args(parser: argparse.ArgumentParser,
 
 def sagemaker_training_parser_for_docs():
     parser = argparse.ArgumentParser()
-    sagemaker_training_args(parser=parser)
+    script = 'script.py'
+    sagemaker_training_args(parser=parser, script=script)
     return parser

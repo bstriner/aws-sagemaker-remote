@@ -113,7 +113,9 @@ def sagemaker_processing_module_args(parser: argparse.ArgumentParser, modules=No
 
 def sagemaker_processing_args(
     parser: argparse.ArgumentParser,
+    script,
     run=False,
+    wait=True,
     profile=PROFILE,
     role=PROCESSING_ROLE,
     image=PROCESSING_IMAGE,
@@ -124,24 +126,52 @@ def sagemaker_processing_args(
     input_mount=INPUT_MOUNT,
     output_mount=OUTPUT_MOUNT,
     module_mount=MODULE_MOUNT,
-    job_name=PROCESSING_JOB_NAME,
+    base_job_name=PROCESSING_JOB_NAME,
+    job_name='',
     runtime_seconds=PROCESSING_RUNTIME_SECONDS,
     volume_size=PROCESSING_VOLUME_SIZE,
     python='python3',
     requirements=None,
     configuration_script=None,
+    configuration_command=None,
     additional_arguments=None,
     argparse_callback=None
 ):
+    r"""
+    Configure ``argparse.ArgumentParser`` for processing scripts.
+
+    Parameters
+    ----------
+    parser : argparse.ArgumentParser
+        Parser to configure
+    script : str
+        Path to script file to execute
+    base_job_name : str, optional
+        Job name will be generated from ``base_job_name`` and a timestamp if ``job_name`` is not provided.
+    job_name : str, optional
+        Job name is used for tracking and organization. Generated from ``base_job_name`` if not provided.
+        Use ``base_job_name`` and leave ``job_name`` blank for most use-cases.
+    """
     if additional_arguments is None:
         additional_arguments = []
     sagemaker_profile_args(parser=parser, profile=profile)
     bool_argument(parser, '--sagemaker-run', default=run,
                   help="Run processing on SageMaker (yes/no default={})".format(run))
+    bool_argument(parser, '--sagemaker-wait', default=wait,
+                  help="Wait for SageMaker processing to complete and tail logs (yes/no default={})".format(wait))
+    parser.add_argument('--sagemaker-script', default=script,
+                        help='Python script to execute (default: [{}])'.format(script))
     parser.add_argument('--sagemaker-python', default=python,
                         help='Python executable to use in container (default: [{}])'.format(python))
     parser.add_argument('--sagemaker-job-name', default=job_name,
-                        help='Job name for SageMaker processing (default: [{}])'.format(job_name))
+                        help='Job name for SageMaker processing. '
+                        'If not provided, will be generated from base job name. '
+                        'Leave blank for most use-cases. '
+                        '(default: [{}])'.format(job_name))
+    parser.add_argument('--sagemaker-base-job-name', default=base_job_name,
+                        help='Base job name for SageMaker processing .'
+                        'Job name will be generated from the base name and a timestamp '
+                        '(default: [{}])'.format(base_job_name))
     parser.add_argument('--sagemaker-runtime-seconds', default=runtime_seconds,
                         help='SageMaker maximum runtime in seconds (default: [{}])'.format(runtime_seconds))
     parser.add_argument('--sagemaker-role', default=role,
@@ -150,6 +180,10 @@ def sagemaker_processing_args(
                         help='Requirements file to install on SageMaker (default: [{}])'.format(requirements))
     parser.add_argument('--sagemaker-configuration-script', default=configuration_script,
                         help='Bash configuration script to source on SageMaker (default: [{}])'.format(configuration_script))
+    parser.add_argument('--sagemaker-configuration-command', default=configuration_command,
+                        help='Bash command to run on SageMaker for configuration '
+                        '(e.g., ``pip install aws_sagemaker_remote && export MYVAR=MYVALUE``) '
+                        '(default: [{}])'.format(configuration_command))
     parser.add_argument('--sagemaker-image', default=image,
                         help='AWS ECR image URI of Docker image to run SageMaker processing (default: [{}])'.format(image))
     parser.add_argument('--sagemaker-instance', default=instance,
@@ -184,8 +218,10 @@ def sagemaker_processing_args(
 
 def sagemaker_processing_parser_for_docs():
     parser = argparse.ArgumentParser()
+    script = 'script.py'
     sagemaker_processing_args(
         parser=parser,
+        script=script,
         inputs={
             'input': '/path/to/input'
         },

@@ -14,7 +14,7 @@ Write a script with a ``main`` function that calls ``sagemaker_training_main``.
 
 .. code-block:: python
 
-   from aws_sagemaker_remote.training import sagemaker_training_main
+   from aws_sagemaker_remote import sagemaker_training_main
 
    def main(args):
        # your code here
@@ -28,6 +28,11 @@ Write a script with a ``main`` function that calls ``sagemaker_training_main``.
        )
 
 Pass function argument ``run=True`` or command line argument ``--sagemaker-run=True`` to run script remotely on SageMaker.
+
+* Many command-line arguments are automatically added. See :ref:`Training Command-Line Arguments`.
+* Parameters to ``sagemaker_processing_main`` control what command-line arguments are automatically added
+  and the default values. See :meth:`aws_sagemaker_remote.training.main.sagemaker_training_main` and
+  :meth:`aws_sagemaker_remote.training.args.sagemaker_training_args`
 
 Training Job Tracking
 -----------------------
@@ -147,6 +152,7 @@ Any arguments passed to your script locally on the command line are passed to yo
       argparse_callback=argparse_callback
     )
 
+.. _Training Command-Line Arguments:
 
 Command-Line Arguments
 ----------------------
