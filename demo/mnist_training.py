@@ -1,12 +1,9 @@
 import argparse
 from aws_sagemaker_remote.training.main import sagemaker_training_main
-# from ignite.engine import Engine
-# from ignite.engine.events import Events
 import torch
 from torch import nn
 from torch.utils import data
 from torchvision import datasets
-from ignite.metrics import RunningAverage
 import torchvision.transforms as transforms
 import os
 
@@ -85,6 +82,9 @@ if __name__ == '__main__':
         main=main,
         channels={
             'input': 'output/data'
+        },
+        dependencies={
+            'aws_sagemaker_remote': os.path.abspath(os.path.join(__file__,'../../aws_sagemaker_remote'))
         },
         argparse_callback=argparse_callback
     )

@@ -11,6 +11,7 @@ Welcome to aws-sagemaker-remote's documentation!
    :caption: Contents:
 
    README <readme>
+   processing
    modules
 
 

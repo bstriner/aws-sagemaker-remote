@@ -2,7 +2,10 @@ from ..session import sagemaker_session
 from .config import SageMakerTrainingConfig
 import os
 from sagemaker.pytorch import PyTorch
+from .channels import standardize_channels, upload_local_channels
+from sagemaker.utils import name_from_base
 
+CHECKPOINT_LOCAL_PATH='/opt/ml/checkpoints'
 
 def sagemaker_training_run(
     script,
@@ -26,10 +29,19 @@ def sagemaker_training_run(
         {'Name': k, 'Regex': v}
         for k, v in metrics.items()
     ]
+    dependencies = [getattr(args, k) for k in config.dependencies.keys()]
 
+    #checkpoint_local_path='/opt/ml/checkpoints/'
+    bucket = session.default_bucket()
+    if args.sagemaker_job_name and len(args.sagemaker_job_name.strip()) > 0:
+        job_name = args.sagemaker_job_name
+    else:
+        job_name = name_from_base(args.sagemaker_base_job_name)
+    #checkpoint_s3_uri = 's3://{}/{}/checkpoints'.format(bucket, job_name)
+    input_prefix = "s3://{}/{}/inputs".format(bucket, job_name)
     estimator = PyTorch(
         sagemaker_session=session,
-        base_job_name=args.sagemaker_job_name,
+        base_job_name=args.sagemaker_base_job_name,
         entry_point=entry_point,
         source_dir=source,
         role=args.sagemaker_training_role,
@@ -38,7 +50,16 @@ def sagemaker_training_run(
         instance_count=1,
         framework_version='1.5.0',
         # hyperparameters=hyperparameters_from_argparse(vars(args)),
-        metric_definitions=metric_definitions
+        metric_definitions=metric_definitions,
+        dependencies=dependencies,
+        #checkpoint_s3_uri=checkpoint_s3_uri,
+        checkpoint_local_path=CHECKPOINT_LOCAL_PATH
     )
-    estimator.fit(config.channels)
+
+    channels = config.channels
+    channels = standardize_channels(channels=channels)
+    channels = upload_local_channels(
+        channels=channels, session=session, prefix=input_prefix)
+
+    estimator.fit(channels, job_name=job_name, wait=args.sagemaker_wait)
     return estimator

@@ -181,30 +181,16 @@ def sagemaker_processing_args(
         outputs=outputs
     )
 
-    """
-    if channels is None:
-        channels = DEFAULT_CHANNELS
-    if device is None:
-        device = "cpu" if not torch.cuda.is_available() else "cuda"
-    output_dir = os.environ.get('SM_OUTPUT_DIR', output_dir)
-    parser.add_argument("--device", type=str, default=device,
-                        help="device to use (default: {})".format(device))
-    parser.add_argument('--output-dir', type=str,
-                        default=output_dir,
-                        help='directory for checkpoints, logs, images, or other output files (default: "{}")'.format(output_dir))
-    for channel, default in channels.items():
-        key = 'SM_CHANNEL_{}'.format(channel.upper())
-        if key in os.environ:
-            default = os.environ[key]
-        else:
-            default = os.path.abspath(os.path.join(__file__, default))
-        parser.add_argument('--{}'.format(channel), type=str,  default=default,
-                            help="input directory for [{}] channel".format(channel))
-    """
 
-
-def sagemaker_training_args(
-    parser: argparse.ArgumentParser
-):
-    parser.add_argument("--sagemaker-run", default=False,
-                        help="Run training on SageMaker (yes/no default=no)")
+def sagemaker_processing_parser_for_docs():
+    parser = argparse.ArgumentParser()
+    sagemaker_processing_args(
+        parser=parser,
+        inputs={
+            'input': '/path/to/input'
+        },
+        outputs={
+            'output': ('/path/to/output', 'default')
+        }
+    )
+    return parser
