@@ -24,7 +24,7 @@ def sagemaker_training_args(
     profile=PROFILE,
     run=False,
     wait=True,
-    channels=None,
+    inputs=None,
     dependencies=None,
     additional_arguments=None,
     argparse_callback=None,
@@ -65,7 +65,7 @@ def sagemaker_training_args(
     wait : bool, optional
         Wait for SageMaker processing to complete. 
         Set default for ``--sagemaker-wait``.
-    channels : dict(str,str), optional
+    inputs : dict(str,str), optional
         Dictionary of input arguments.
         For eack key and value, create an argument ``--key`` that defaults to value.
         * Running locally, input arguments are unmodified.
@@ -136,7 +136,7 @@ def sagemaker_training_args(
         help='Job name for tracking. Use --base-job-name instead and a job name will be automatically generated with a timestamp.')
     sagemaker_training_model_args(parser=parser, model_dir=model_dir)
     sagemaker_training_output_args(parser=parser, output_dir=output_dir)
-    sagemaker_training_channel_args(parser=parser, channels=channels)
+    sagemaker_training_channel_args(parser=parser, inputs=inputs)
     sagemaker_training_dependency_args(
         parser=parser, dependencies=dependencies)
     if additional_arguments:
@@ -144,7 +144,7 @@ def sagemaker_training_args(
             parser.add_argument(*args, **kwargs)
     if argparse_callback:
         argparse_callback(parser)
-    return SageMakerTrainingConfig(channels=channels, dependencies=dependencies)
+    return SageMakerTrainingConfig(inputs=inputs, dependencies=dependencies)
 
 
 def sagemaker_training_output_args(parser: argparse.ArgumentParser, output_dir):
@@ -163,9 +163,9 @@ def sagemaker_training_dependency_args(parser: argparse.ArgumentParser, dependen
                                 help='Directory for dependency [{}] (default: "{}")'.format(k, v))
 
 
-def sagemaker_training_channel_args(parser: argparse.ArgumentParser, channels):
-    if channels:
-        for channel, default in channels.items():
+def sagemaker_training_channel_args(parser: argparse.ArgumentParser, inputs):
+    if inputs:
+        for channel, default in inputs.items():
             flag = variable_to_argparse(channel)
             env_key = 'SM_CHANNEL_{}'.format(channel.upper())
             if env_key in os.environ:
@@ -189,5 +189,12 @@ def sagemaker_training_model_args(parser: argparse.ArgumentParser,
 def sagemaker_training_parser_for_docs():
     parser = argparse.ArgumentParser()
     script = 'script.py'
-    sagemaker_training_args(parser=parser, script=script)
+    sagemaker_training_args(
+        parser=parser, script=script,
+        inputs={
+            'input': 'path/to/input'
+        },
+        dependencies={
+            'my_module': 'path/to/my_module'
+        })
     return parser

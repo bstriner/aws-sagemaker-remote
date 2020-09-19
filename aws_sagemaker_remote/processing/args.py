@@ -94,15 +94,15 @@ def sagemaker_processing_output_args(parser: argparse.ArgumentParser, outputs=No
                 help=OUTPUT_S3_HELP.format(k=k, v=s3_default))
 
 
-def sagemaker_processing_module_args(parser: argparse.ArgumentParser, modules=None,
+def sagemaker_processing_module_args(parser: argparse.ArgumentParser, dependencies=None,
                                      module_mount=MODULE_MOUNT):
-    if modules is None:
-        modules = {}
+    if dependencies is None:
+        dependencies = {}
     parser.add_argument(
         '--sagemaker-module-mount',
         default=module_mount,
         help=MODULE_MOUNT_HELP.format(module_mount))
-    for k, v in modules.items():
+    for k, v in dependencies.items():
         varname = "module_{}".format(k)
         flag = variable_to_argparse(varname)
         parser.add_argument(
@@ -122,7 +122,7 @@ def sagemaker_processing_args(
     instance=PROCESSING_INSTANCE,
     inputs=None,
     outputs=None,
-    modules=None,
+    dependencies=None,
     input_mount=INPUT_MOUNT,
     output_mount=OUTPUT_MOUNT,
     module_mount=MODULE_MOUNT,
@@ -179,7 +179,7 @@ def sagemaker_processing_args(
             * Create an argument ``--key-s3`` that defaults to value[1]. This controls where output is stored on S3.
               * Set to ``default`` to automatically create an output path based on the job name
               * Set to an S3 URL to store output at a specific location on S3
-    modules : dict(str, str)
+    dependencies : dict(str, str)
         Dictionary of modules.
         For eack key and value, create an argument ``--module-key`` that defaults to value. 
         This controls the path of a dependency of your code.
@@ -277,7 +277,7 @@ def sagemaker_processing_args(
     )
     sagemaker_processing_module_args(
         parser=parser,
-        modules=modules,
+        dependencies=dependencies,
         module_mount=module_mount
     )
     for args, kwargs in additional_arguments:
@@ -285,7 +285,7 @@ def sagemaker_processing_args(
     if argparse_callback:
         argparse_callback(parser)
     return SageMakerProcessingConfig(
-        modules=modules,
+        dependencies=dependencies,
         inputs=inputs,
         outputs=outputs
     )

@@ -68,4 +68,9 @@ def sagemaker_training_run(
         channels=channels, session=session, prefix=input_prefix)
 
     estimator.fit(channels, job_name=job_name, wait=args.sagemaker_wait)
+    # todo:
+    # use_spot_instances
+    # experiment_config (dict[str, str]): Experiment management configuration.
+    #            Dictionary contains three optional keys,
+    #            'ExperimentName', 'TrialName', and 'TrialComponentDisplayName'.
     return estimator
