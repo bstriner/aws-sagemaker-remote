@@ -5,7 +5,7 @@ import inspect
 
 
 def sagemaker_processing_main(
-    main, script=None,
+    main, script=None,description=None,
     **processing_args
 ):
     r"""
@@ -36,12 +36,14 @@ def sagemaker_processing_main(
         Path to script file to execute. 
         Set to ``__file__`` for most use-cases.
         Empty or None defaults to file containing ``main``.
+    description: str, optional
+        Script description for argparse
     \**processing_args : dict, optional
         Keyword arguments to :meth:`aws_sagemaker_remote.processing.args.sagemaker_processing_args`
     """
     if not script:
         script = inspect.getfile(main)
-    parser = ArgumentParser()
+    parser = ArgumentParser(description=description)
     config = sagemaker_processing_args(
         parser=parser, script=script, **processing_args)
     args = parser.parse_args()

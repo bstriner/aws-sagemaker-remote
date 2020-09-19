@@ -3,8 +3,9 @@ from .args import sagemaker_training_args
 from argparse import ArgumentParser
 import inspect
 
+
 def sagemaker_training_main(
-        main, script=None, metrics=None,
+        main, script=None, description=None, metrics=None,
         **training_args):
     r"""
     Entry point for training.
@@ -34,6 +35,8 @@ def sagemaker_training_main(
         Path to script file to execute. 
         Set to ``__file__`` for most use-cases.
         Empty or None defaults to file containing ``main``.
+    description: str, optional
+        Script description for argparse
     metrics : dict, optional
         Metrics to record. Dictionary of metric name (str) to RegEx that extracts metric (str).
         See `SageMaker Training Metrics Docs <https://docs.aws.amazon.com/sagemaker/latest/dg/training-metrics.html#define-train-metric-regex>`_
@@ -42,14 +45,13 @@ def sagemaker_training_main(
     """
     if not script:
         script = inspect.getfile(main)
-    parser = ArgumentParser()
-    config = sagemaker_training_args(parser=parser,script=script, **training_args)
+    parser = ArgumentParser(description=description)
+    config = sagemaker_training_args(
+        parser=parser, script=script, **training_args)
     args = parser.parse_args()
     if args.sagemaker_run:
         # Remote processing
         sagemaker_training_run(
-            script=script,
-            source=source,
             args=args,
             config=config,
             metrics=metrics)

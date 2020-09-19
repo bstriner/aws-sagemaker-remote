@@ -10,10 +10,8 @@ CHECKPOINT_LOCAL_PATH = '/opt/ml/checkpoints'
 
 
 def sagemaker_training_run(
-    script,
     args,
     config: SageMakerTrainingConfig,
-    source=None,
     metrics=None
 ):
     if metrics is None:
@@ -21,8 +19,10 @@ def sagemaker_training_run(
     session = sagemaker_session(
         profile_name=args.sagemaker_profile
     )
+    script = args.sagemaker_script
     script = os.path.abspath(script)
-    if source is None:
+    source = args.sagemaker_source
+    if not source:
         source = os.path.dirname(script)
     if not script.startswith(source):
         raise ValueError("script=[{}] must be in source=[{}]")

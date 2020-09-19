@@ -42,16 +42,60 @@ def sagemaker_training_args(
     parser : argparse.ArgumentParser
         Parser to configure
     script : str
-        Path to script file to execute
+        Path to script file to execute.
+        Set default for ``--sagemaker-script``
     source : str, optional
         Path of source directory to upload.
         Must include ``script`` path.
         Defaults to directory containing ``script`` if not provided.
     base_job_name : str, optional
         Job name will be generated from ``base_job_name`` and a timestamp if ``job_name`` is not provided.
+        Set default for ``--sagemaker-base-job-name``.
     job_name : str, optional
-        Job name is used for tracking and organization. Generated from ``base_job_name`` if not provided.
+        Job name is used for tracking and organization. 
+        Generated from ``base_job_name`` if not provided.
         Use ``base_job_name`` and leave ``job_name`` blank for most use-cases.
+        Set default for ``--sagemaker-job-name``.
+    profile : str, optional
+        AWS profile to use for session. 
+        Set default for ``--sagemaker-profile``.
+    run : bool, optional
+        Run on SageMaker. 
+        Set default for ``--sagemaker-run``.
+    wait : bool, optional
+        Wait for SageMaker processing to complete. 
+        Set default for ``--sagemaker-wait``.
+    channels : dict(str,str), optional
+        Dictionary of input arguments.
+        For eack key and value, create an argument ``--key`` that defaults to value.
+        * Running locally, input arguments are unmodified.
+        * Running remotely, inputs are set to appropriate SageMaker mount points. Local inputs are uploaded automatically.
+    dependencies : dict(str, str)
+        Dictionary of modules.
+        For eack key and value, create an argument ``--module-key`` that defaults to value. 
+        This controls the path of a dependency of your code.
+        The files at the given path will be uploaded to S3, downloaded to SageMaker, and put on PYTHONPATH.    
+    additional_arguments: list, optional
+        List of tuple of positional args and keyword args for ``argparse.ArgumentParser.add_argument``.
+        Use to add additional arguments to the script.
+    argparse_callback: function, optional
+        Function accepting one argument ``parser:argparse.ArgumentParser`` that adds additional arguments.
+        Use to add additional arguments to the script.
+    model_dir: string, optional
+        Directory to save trained model.
+        Set default for ``--model-dir``.
+    output_dir: string, optional
+        Directory to save outputs (images, logs, etc.).
+        Set default for ``--output-dir``.
+    training_image : str, optional
+        URI of ECR or DockerHub Docker image to use for training. 
+        Set default for ``--sagemaker-training-image``.
+    training_instance : str, optional
+        Type of instance to use for training (e.g., ``ml.t3.medium``). 
+        Set default for ``--sagemaker-training-instance``.
+    training_role : str, optional
+        AWS IAM role name to use for training. Will be created if it does not exist. 
+        Set default for ``--sagemaker-training-role``.
     """
     sagemaker_profile_args(parser=parser, profile=profile)
     bool_argument(parser, '--sagemaker-run', default=run,

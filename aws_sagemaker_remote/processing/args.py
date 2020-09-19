@@ -145,7 +145,8 @@ def sagemaker_processing_args(
     parser : argparse.ArgumentParser
         Parser to configure
     script : str
-        Path to script file to execute
+        Path to script file to execute.
+        Set default for ``--sagemaker-script``
     run : bool, optional
         Run on SageMaker. 
         Set default for ``--sagemaker-run``.
@@ -188,7 +189,7 @@ def sagemaker_processing_args(
         Set default for ``--sagemaker-input-mount``.
     output_mount : str, optional
         Local path on SageMaker container where outputs are written before upload.
-        Set default for ``--sagemaker-outpu-mount``.
+        Set default for ``--sagemaker-output-mount``.
     module_mount : str, optional
         Local path on SageMaker container where source code is downloaded. Mount point is put on PYTHONPATH.
         Set default for ``--sagemaker-module-mount``.
@@ -203,7 +204,28 @@ def sagemaker_processing_args(
     runtime_seconds: int, optional
         Maximum in seconds before killing job.
         Set default for ``--sagemaker-runtime-seconds``.
-
+    volume_size: int, optional
+        Volume size in GB.
+        Set default for ``--sagemaker-volume-size``.
+    python: str, optional
+        Pyton executable on container (default: ``python3``).
+        Set default for ``--sagemaker-python``.
+    requirements: str, optional
+        Set path to requirements file to upload and install with ``pip install -r``.
+        Set default for ``--sagemaker-requirements``.
+    configuration_script: str, optional
+        Set path to bash script to upload and source.
+        Set default for ``--sagemaker-configuration-script``.
+    configuration_command: str, optional
+        Set command to be run to configure container,
+        e.g. ``pip install mypackage && export MYVAR=MYVALUE``.
+        Set default for ``--sagemaker-configuration-command``.
+    additional_arguments: list, optional
+        List of tuple of positional args and keyword args for ``argparse.ArgumentParser.add_argument``.
+        Use to add additional arguments to the script.
+    argparse_callback: function, optional
+        Function accepting one argument ``parser:argparse.ArgumentParser`` that adds additional arguments.
+        Use to add additional arguments to the script.
     """
     if additional_arguments is None:
         additional_arguments = []
