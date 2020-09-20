@@ -156,8 +156,41 @@ Any arguments passed to your script locally on the command line are passed to yo
 Command-Line Arguments
 ----------------------
 
+These command-line arguments were created using the following parameters. 
+Command-line arguments are generated for each item in ``inputs`` and ``dependencies``.
+
+.. code-block:: python
+  
+  inputs={
+      'input': 'path/to/input'
+  },
+  dependencies={
+      'my_module': 'path/to/my_module'
+  }
+
 .. argparse::
    :module: aws_sagemaker_remote.training.args
    :func: sagemaker_training_parser_for_docs
    :prog: aws-sagemaker-remote-training
+
         
+Example Code
+--------------
+
+The following example creates a trainer with one input named ``input``.
+
+* Running the file without arguments will run locally. The argument ``--input`` sets the input directory.
+* Running the file with ``--sagemaker-run=yes`` will run on SageMaker. The argument ``--input`` is uploaded to S3,
+  downloaded to SageMaker, and automatically set to a mountpoint.
+
+The example code uploads ``aws_sagemaker_remote`` from the local filesystem using the ``dependencies`` argument. Alternatively:
+
+* Add ``aws_sagemaker_remote`` to your Docker image.
+* Create a ``requirements.txt`` file including ``aws_sagemaker_remote``. 
+  Place the file in your ``source`` directory (default to the directory containing the file containing the main function)
+
+See `mnist_training.py <https://github.com/bstriner/aws-sagemaker-remote/blob/master/demo/mnist_training.py>`_.
+
+.. literalinclude:: ../../demo/mnist_training.py
+  :language: python
+

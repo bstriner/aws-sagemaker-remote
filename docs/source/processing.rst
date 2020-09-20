@@ -174,6 +174,21 @@ Any arguments passed to your script locally on the command line are passed to yo
 Command-Line Arguments
 ----------------------
 
+These command-line arguments were created using the following parameters. 
+Command-line arguments are generated for each item in ``inputs``, ``outputs`` and ``dependencies``.
+
+.. code-block:: python
+  
+  inputs={
+      'input': '/path/to/input'
+  },
+  outputs={
+      'output': ('/path/to/output', 'default')
+  },
+  dependencies={
+      'my_module': '/path/to/my_module'
+  }
+
 .. argparse::
    :module: aws_sagemaker_remote.processing.args
    :func: sagemaker_processing_parser_for_docs
@@ -190,7 +205,7 @@ The following example creates a processor with no inputs and one output named ``
   on SageMaker and outputs are uploaded to S3. Use ``--output-s3`` to set the S3 output path, or leave it as ``default`` to automatically
   generate an appropriate path based on the job name.
 
-The example code uploads ``aws_sagemaker_remote`` from the local filesystem using the ``modules`` argument. Alternatively:
+The example code uploads ``aws_sagemaker_remote`` from the local filesystem using the ``dependencies`` argument. Alternatively:
 
 * Add ``aws_sagemaker_remote`` to your Docker image.
 * Create a ``requirements.txt`` file including ``aws_sagemaker_remote``. 

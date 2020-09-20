@@ -302,6 +302,9 @@ def sagemaker_processing_parser_for_docs():
         },
         outputs={
             'output': ('/path/to/output', 'default')
+        },
+        dependencies={
+            'my_module': '/path/to/my_module'
         }
     )
     return parser
