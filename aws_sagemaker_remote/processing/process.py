@@ -30,13 +30,13 @@ def sagemaker_processing_run(args, config):
     outputs = {
         k: (getattr(args, k), getattr(args, "{}_s3".format(k))) for k in config.outputs.keys()
     }
-    modules = {
-        k: getattr(args, "module_{}".format(k)) for k in config.modules.keys()
+    dependencies = {
+        k: getattr(args, "module_{}".format(k)) for k in config.dependencies.keys()
     }
     process(
         inputs=inputs,
         outputs=outputs,
-        modules=modules,
+        dependencies=dependencies,
         session=session,
         role=args.sagemaker_role,
         script=script,
@@ -66,7 +66,7 @@ def make_arguments(args, config: SageMakerProcessingConfig):
     to_del.extend(config.inputs.keys())
     to_del.extend(config.outputs.keys())
     to_del.extend("{}_s3" for k in config.outputs.keys())
-    to_del.extend("module_{}".format(k) for k in config.modules.keys())
+    to_del.extend("module_{}".format(k) for k in config.dependencies.keys())
     for k in to_del:
         if k in vargs:
             del vargs[k]
@@ -93,7 +93,7 @@ def process(
     # script_source,
     inputs=None,
     outputs=None,
-    modules=None,
+    dependencies=None,
     requirements=None,
     configuration_script=None,
     configuration_command=None,
@@ -117,8 +117,8 @@ def process(
         inputs = {}
     if outputs is None:
         outputs = {}
-    if modules is None:
-        modules = {}
+    if dependencies is None:
+        dependencies = {}
     # if module_mount is not None and len(module_mount)> 0:
     #    command = ["PYTHONPATH={module_mount};${{PYTHONPATH}}".format(module_mount=module_mount), "python3"]
     # else:
@@ -146,7 +146,7 @@ def process(
             # s3_data_distribution_type='FullyReplicated',
             # s3_compression_type='None'
         )
-        for name, source in modules.items()
+        for name, source in dependencies.items()
     ])
     script_remote = "{}/{}".format(module_mount, os.path.basename(script))
     processing_inputs.append(
