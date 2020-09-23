@@ -35,7 +35,8 @@ def sagemaker_training_args(
     training_role=TRAINING_ROLE,
     enable_sagemaker=True,
     experiment_name=None,
-    trial_name=None
+    trial_name=None,
+    spot_instances=False
 ):
     r"""
     Configure ``argparse.ArgumentParser`` for training scripts.
@@ -115,6 +116,8 @@ def sagemaker_training_args(
                     help="Run training on SageMaker (yes/no default={})".format(run))
         bool_argument(parser, '--sagemaker-wait', default=run,
                     help="Wait for SageMaker training to complete and tail logs files (yes/no default={})".format(wait))
+        bool_argument(parser, '--sagemaker-spot-instances', default=spot_instances,
+                    help="Use spot instances for training (yes/no default={})".format(spot_instances))
         parser.add_argument(
             '--sagemaker-script',
             default=script,

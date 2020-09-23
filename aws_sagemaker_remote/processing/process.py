@@ -167,12 +167,12 @@ def process(
     }
 
     if requirements and len(requirements) > 0:
-        requirements_remote = "{}/{}".format(module_mount, 'requirements.txt')
+        requirements_remote = "{}/requirements_txt/{}".format(module_mount, 'requirements.txt')
         env['AWS_SAGEMAKER_REMOTE_REQUIREMENTS'] = requirements_remote
         processing_inputs.append(
             ProcessingInput(
                 source=requirements,
-                destination=module_mount,
+                destination="{}/requirements_txt".format(module_mount),
                 input_name="aws_sagemaker_remote_requirements",
                 s3_input_mode='File',
             )
