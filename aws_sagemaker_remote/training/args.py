@@ -3,6 +3,7 @@ from distutils.util import strtobool
 import os
 from ..args import variable_to_argparse, bool_argument, sagemaker_profile_args, PROFILE
 from .config import SageMakerTrainingConfig
+import json
 
 CHANNEL_HELP = """Input channel [{channel}].
 Set to local path and it will be uploaded to S3 and downloaded to SageMaker.
@@ -13,6 +14,34 @@ TRAINING_IMAGE = '683880991063.dkr.ecr.us-east-1.amazonaws.com/columbo-sagemaker
 TRAINING_INSTANCE = 'ml.m5.large'
 TRAINING_ROLE = 'aws-sagemaker-remote-training-role'
 BASE_JOB_NAME = 'training-job'
+
+
+def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig):
+    sm_env = os.getenv('SM_TRAINING_ENV', None)
+    if sm_env:
+        kwargs = vars(args)
+        data = json.loads(sm_env)
+        ci = data.get('channel_input_dirs', None)
+        if ci:
+            aux = {}
+            for k in config.inputs.keys():
+                v = ci.get(k, None)
+                if v:
+                    aux[k] = v
+            kwargs.update(aux)
+        output_dir = data.get('output_dir', None)
+        if output_dir:
+            kwargs['output_dir'] = output_dir
+        model_dir = data.get('model_dir', None)
+        if model_dir:
+            kwargs['model_dir'] = model_dir
+        new_args = argparse.Namespace(
+            **kwargs
+        )
+        print("Updated args: {}".format(new_args))
+        return new_args
+    else:
+        return args
 
 
 def sagemaker_training_args(
@@ -113,11 +142,11 @@ def sagemaker_training_args(
     if enable_sagemaker:
         sagemaker_profile_args(parser=parser, profile=profile)
         bool_argument(parser, '--sagemaker-run', default=run,
-                    help="Run training on SageMaker (yes/no default={})".format(run))
+                      help="Run training on SageMaker (yes/no default={})".format(run))
         bool_argument(parser, '--sagemaker-wait', default=wait,
-                    help="Wait for SageMaker training to complete and tail logs files (yes/no default={})".format(wait))
+                      help="Wait for SageMaker training to complete and tail logs files (yes/no default={})".format(wait))
         bool_argument(parser, '--sagemaker-spot-instances', default=spot_instances,
-                    help="Use spot instances for training (yes/no default={})".format(spot_instances))
+                      help="Use spot instances for training (yes/no default={})".format(spot_instances))
         parser.add_argument(
             '--sagemaker-script',
             default=script,

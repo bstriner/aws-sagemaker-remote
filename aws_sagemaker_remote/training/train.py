@@ -45,8 +45,10 @@ def sagemaker_training_run(
     iam = session.boto_session.client('iam')
     training_role = ensure_training_role(
         iam=iam, role_name=args.sagemaker_training_role)
-    hyperparameters = {k: str(v)
-                       for k, v in vars(args).items() if len(str(v)) > 0}
+    hyperparameters = {k.replace('_', '-'): str(v)
+                       for k, v in vars(args).items() if v is not None and len(str(v)) > 0}
+    hyperparameters['sagemaker-run'] = 'False'
+    print("Hyperparameters: {}".format(hyperparameters))
     estimator = PyTorch(
         sagemaker_session=session,
         base_job_name=args.sagemaker_base_job_name,
@@ -73,7 +75,8 @@ def sagemaker_training_run(
 
     if args.sagemaker_experiment_name:
         sagemaker_client = session.boto_session.client('sagemaker')
-        ensure_experiment(client=sagemaker_client, experiment_name=args.sagemaker_experiment_name)
+        ensure_experiment(client=sagemaker_client,
+                          experiment_name=args.sagemaker_experiment_name)
         experiment_config = {
             "ExperimentName": args.sagemaker_experiment_name
         }

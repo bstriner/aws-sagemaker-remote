@@ -1,5 +1,5 @@
 from .train import sagemaker_training_run
-from .args import sagemaker_training_args
+from .args import sagemaker_training_args, sagemaker_env_args
 from argparse import ArgumentParser
 import inspect
 
@@ -56,5 +56,6 @@ def sagemaker_training_main(
             config=config,
             metrics=metrics)
     else:
-        # Local processing
+        # Local processing or on SageMaker container
+        args = sagemaker_env_args(args=args, config=config)
         main(args)
