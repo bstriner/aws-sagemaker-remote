@@ -5,3 +5,4 @@ tqdm
 sphinx
 sphinx_rtd_theme
 sphinx-argparse
+sagemaker-experiments

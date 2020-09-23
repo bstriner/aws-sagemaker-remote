@@ -69,10 +69,12 @@ def argparse_callback(parser):
     parser.add_argument(
         '--learning-rate', 
         default=1e-3,
+        type=float,
         help='Learning rate')
     parser.add_argument(
         '--epochs', 
         default=5,
+        type=int,
         help='Epochs to train')
 
 
@@ -80,7 +82,7 @@ if __name__ == '__main__':
     sagemaker_training_main(
         script=__file__,
         main=main,
-        channels={
+        inputs={
             'input': 'output/data'
         },
         dependencies={
