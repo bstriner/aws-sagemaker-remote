@@ -38,6 +38,7 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
         new_args = argparse.Namespace(
             **kwargs
         )
+        print("Original args: {}".format(args))
         print("Updated args: {}".format(new_args))
         return new_args
     else:

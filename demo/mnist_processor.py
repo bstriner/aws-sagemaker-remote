@@ -31,11 +31,12 @@ if __name__ == '__main__':
             # flag: (local default, s3 default)
             'output': ('output/data', 'default')
         },
-        modules={
+        dependencies={
             # Add a module to SageMaker
             # module name: module path
-            'aws_sagemaker_remote': os.path.join(__file__, '../..')
+            'aws_sagemaker_remote': os.path.join(__file__, '../../aws_sagemaker_remote')
         },
+        configuration_command='pip3 install --upgrade sagemaker sagemaker-experiments',
         # Name the job
-        job_name='demo-mnist-processor'
+        base_job_name='demo-mnist-processor'
     )

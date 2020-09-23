@@ -86,6 +86,18 @@ def make_arguments(args, config: SageMakerProcessingConfig):
     return arguments
 
 
+def ensure_eol(file):
+    """
+    Ensure that file has Linux line endings. Convert if it doesn't.
+    """
+    if b"\r\n" in open(file, 'rb').read():
+        print("DOS line endings found in {}. Attempting conversion.".format(file))
+        with open(file, 'U') as infile:
+            text = infile.read()
+        with open(file, 'w', newline='\n') as outfile:
+            outfile.write(text)
+
+
 def process(
     session: SagemakerSession,
     role,
@@ -167,7 +179,8 @@ def process(
     }
 
     if requirements and len(requirements) > 0:
-        requirements_remote = "{}/requirements_txt/{}".format(module_mount, 'requirements.txt')
+        requirements_remote = "{}/requirements_txt/{}".format(
+            module_mount, 'requirements.txt')
         env['AWS_SAGEMAKER_REMOTE_REQUIREMENTS'] = requirements_remote
         processing_inputs.append(
             ProcessingInput(
@@ -234,6 +247,7 @@ def process(
         )
         for name, dest in outputs.items()
     ]
+    ensure_eol(PROCESSING_SCRIPT)
     code = Path(PROCESSING_SCRIPT).as_uri()
     if job_name is None or len(str(job_name).strip()) == 0:
         job_name = None

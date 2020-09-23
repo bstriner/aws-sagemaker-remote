@@ -4,7 +4,7 @@ import os
 from .config import SageMakerProcessingConfig
 from ..args import variable_to_argparse, bool_argument, sagemaker_profile_args, PROFILE
 
-#PROCESSING_IMAGE = '137112412989.dkr.ecr.us-east-1.amazonaws.com/amazonlinux:latest'
+
 PROCESSING_ROLE = 'aws-sagemaker-remote-processing-role'
 PROCESSING_IMAGE = '683880991063.dkr.ecr.us-east-1.amazonaws.com/columbo-compute:latest'
 PROCESSING_INSTANCE = 'ml.t3.medium'
