@@ -32,7 +32,10 @@ def sagemaker_training_args(
     output_dir='output/output',
     training_image=TRAINING_IMAGE,
     training_instance=TRAINING_INSTANCE,
-    training_role=TRAINING_ROLE
+    training_role=TRAINING_ROLE,
+    enable_sagemaker=True,
+    experiment_name=None,
+    trial_name=None
 ):
     r"""
     Configure ``argparse.ArgumentParser`` for training scripts.
@@ -96,49 +99,67 @@ def sagemaker_training_args(
     training_role : str, optional
         AWS IAM role name to use for training. Will be created if it does not exist. 
         Set default for ``--sagemaker-training-role``.
+    experiment_name : str, optional
+        Name of experiment. Required if ``trial_name`` is provided.
+        Set default for ``--sagemaker-experiment-name``.
+    trial_name : str, optional
+        Name of trial within experiment. 
+        Set default for ``--sagemaker-trial-name``.
+    enable_sagemaker : bool, optional
+        * True: Include SageMaker command-line options.
+        * False: Only include local command-line options
     """
-    sagemaker_profile_args(parser=parser, profile=profile)
-    bool_argument(parser, '--sagemaker-run', default=run,
-                  help="Run training on SageMaker (yes/no default={})".format(run))
-    bool_argument(parser, '--sagemaker-wait', default=run,
-                  help="Wait for SageMaker training to complete and tail logs files (yes/no default={})".format(wait))
-    parser.add_argument(
-        '--sagemaker-script',
-        default=script,
-        help='Script to run on SageMaker. (default: [{}])'.format(script))
-    parser.add_argument(
-        '--sagemaker-source',
-        default=source,
-        help='Source to upload to SageMaker. '
-        'Must contain script. '
-        'If blank, default to directory containing script. '
-        '(default: [{}])'.format(source))
-    parser.add_argument(
-        '--sagemaker-training-instance',
-        default=training_instance,
-        help='Instance type for training')
-    parser.add_argument(
-        '--sagemaker-training-image',
-        default=training_image,
-        help='Docker image for training')
-    parser.add_argument(
-        '--sagemaker-training-role',
-        default=training_role,
-        help='Docker image for training')
-    parser.add_argument(
-        '--sagemaker-base-job-name',
-        default=base_job_name,
-        help='Base job name for tracking and organization on S3.'
-        ' A job name will be generated from the base job name unless a job name is specified.')
-    parser.add_argument(
-        '--sagemaker-job-name',
-        default=job_name,
-        help='Job name for tracking. Use --base-job-name instead and a job name will be automatically generated with a timestamp.')
+    if enable_sagemaker:
+        sagemaker_profile_args(parser=parser, profile=profile)
+        bool_argument(parser, '--sagemaker-run', default=run,
+                    help="Run training on SageMaker (yes/no default={})".format(run))
+        bool_argument(parser, '--sagemaker-wait', default=run,
+                    help="Wait for SageMaker training to complete and tail logs files (yes/no default={})".format(wait))
+        parser.add_argument(
+            '--sagemaker-script',
+            default=script,
+            help='Script to run on SageMaker. (default: [{}])'.format(script))
+        parser.add_argument(
+            '--sagemaker-source',
+            default=source,
+            help='Source to upload to SageMaker. '
+            'Must contain script. '
+            'If blank, default to directory containing script. '
+            '(default: [{}])'.format(source))
+        parser.add_argument(
+            '--sagemaker-training-instance',
+            default=training_instance,
+            help='Instance type for training')
+        parser.add_argument(
+            '--sagemaker-training-image',
+            default=training_image,
+            help='Docker image for training')
+        parser.add_argument(
+            '--sagemaker-training-role',
+            default=training_role,
+            help='Docker image for training')
+        parser.add_argument(
+            '--sagemaker-base-job-name',
+            default=base_job_name,
+            help='Base job name for tracking and organization on S3.'
+            ' A job name will be generated from the base job name unless a job name is specified.')
+        parser.add_argument(
+            '--sagemaker-job-name',
+            default=job_name,
+            help='Job name for tracking. Use --base-job-name instead and a job name will be automatically generated with a timestamp.')
+        parser.add_argument(
+            '--sagemaker-experiment-name',
+            default=experiment_name,
+            help='Name of experiment in SageMaker tracking.')
+        parser.add_argument(
+            '--sagemaker-trial-name',
+            default=trial_name,
+            help='Name of experiment trial in SageMaker tracking.')
+        sagemaker_training_dependency_args(
+            parser=parser, dependencies=dependencies)
     sagemaker_training_model_args(parser=parser, model_dir=model_dir)
     sagemaker_training_output_args(parser=parser, output_dir=output_dir)
     sagemaker_training_channel_args(parser=parser, inputs=inputs)
-    sagemaker_training_dependency_args(
-        parser=parser, dependencies=dependencies)
     if additional_arguments:
         for args, kwargs in additional_arguments:
             parser.add_argument(*args, **kwargs)

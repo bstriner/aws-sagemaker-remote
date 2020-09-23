@@ -67,7 +67,18 @@ def sagemaker_training_run(
     channels = upload_local_channels(
         channels=channels, session=session, prefix=input_prefix)
 
-    estimator.fit(channels, job_name=job_name, wait=args.sagemaker_wait)
+    if args.sagemaker_experiment_name:
+        experiment_config = {
+            "ExperimentName": args.sagemaker_experiment_name
+        }
+        if args.sagemaker_trial_name:
+            experiment_config["TrialName"] = args.sagemaker_trial_name
+    else:
+        if args.sagemaker_trial_name:
+            raise ValueError("If `sagemaker_trial_name` is provided, `sagemaker_experiment_name` must be provided as well")
+        experiment_config = None
+
+    estimator.fit(channels, job_name=job_name, wait=args.sagemaker_wait, experiment_config=experiment_config)
     # todo:
     # use_spot_instances
     # experiment_config (dict[str, str]): Experiment management configuration.
