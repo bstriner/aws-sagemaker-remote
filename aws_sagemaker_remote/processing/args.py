@@ -82,7 +82,11 @@ def sagemaker_processing_output_args(parser: argparse.ArgumentParser, outputs=No
             default=output_mount,
             help=OUTPUT_MOUNT_HELP.format(output_mount))
         for k, v in outputs.items():
-            local_default, s3_default = v
+            if isinstance(v, (tuple, list)):
+                local_default, s3_default = v
+            else:
+                local_default = v
+                s3_default = 'default'
             flag = variable_to_argparse(k)
             parser.add_argument(
                 flag,
