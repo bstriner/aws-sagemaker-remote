@@ -5,7 +5,7 @@ from sagemaker.pytorch import PyTorch
 from .channels import standardize_channels, upload_local_channels
 from sagemaker.utils import name_from_base
 from .iam import ensure_training_role
-
+from .experiment import ensure_experiment
 CHECKPOINT_LOCAL_PATH = '/opt/ml/checkpoints'
 
 
@@ -66,12 +66,14 @@ def sagemaker_training_run(
         hyperparameters=hyperparameters
     )
 
-    channels = config.channels
+    channels = config.inputs
     channels = standardize_channels(channels=channels)
     channels = upload_local_channels(
         channels=channels, session=session, prefix=input_prefix)
 
     if args.sagemaker_experiment_name:
+        sagemaker_client = session.boto_session.client('sagemaker')
+        ensure_experiment(client=sagemaker_client, experiment_name=args.sagemaker_experiment_name)
         experiment_config = {
             "ExperimentName": args.sagemaker_experiment_name
         }

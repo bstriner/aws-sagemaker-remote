@@ -114,7 +114,7 @@ def sagemaker_training_args(
         sagemaker_profile_args(parser=parser, profile=profile)
         bool_argument(parser, '--sagemaker-run', default=run,
                     help="Run training on SageMaker (yes/no default={})".format(run))
-        bool_argument(parser, '--sagemaker-wait', default=run,
+        bool_argument(parser, '--sagemaker-wait', default=wait,
                     help="Wait for SageMaker training to complete and tail logs files (yes/no default={})".format(wait))
         bool_argument(parser, '--sagemaker-spot-instances', default=spot_instances,
                     help="Use spot instances for training (yes/no default={})".format(spot_instances))

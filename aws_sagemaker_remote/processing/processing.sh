@@ -1,15 +1,15 @@
 #!/bin/sh
-#echo Processing script
-#echo Environment
-#env
-#echo Arguments
-#echo "$@"
+echo Processing script
+echo Environment
+env
+echo Arguments
+echo "$@"
 #echo LS
 #ls -lR /opt/ml/processing
-#echo Running script
+echo Running script
 
 if [ ! -z "${AWS_SAGEMAKER_REMOTE_MODULE_MOUNT}" ]; then
-    export PYTHONPATH=${AWS_SAGEMAKER_REMOTE_MODULE_MOUNT}:${PYTHONPATH}
+    export PYTHONPATH="${AWS_SAGEMAKER_REMOTE_MODULE_MOUNT}:${PYTHONPATH}"
 fi
 
 if [ ! -z "${AWS_SAGEMAKER_REMOTE_CONFIGURATION_SCRIPT}" ]; then
