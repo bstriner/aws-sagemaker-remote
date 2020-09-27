@@ -35,6 +35,7 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
         model_dir = data.get('model_dir', None)
         if model_dir:
             kwargs['model_dir'] = model_dir
+        kwargs['sagemaker_run'] = False
         new_args = argparse.Namespace(
             **kwargs
         )

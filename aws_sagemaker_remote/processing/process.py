@@ -56,7 +56,8 @@ def sagemaker_processing_run(args, config):
         arguments=make_arguments(args=args, config=config),
         requirements=args.sagemaker_requirements,
         configuration_script=args.sagemaker_configuration_script,
-        configuration_command=args.sagemaker_configuration_command
+        configuration_command=args.sagemaker_configuration_command,
+        wait=args.sagemaker_wait
     )
 
 

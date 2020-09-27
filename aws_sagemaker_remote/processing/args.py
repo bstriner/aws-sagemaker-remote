@@ -267,7 +267,7 @@ def sagemaker_processing_args(
                         help='AWS ECR image URI of Docker image to run SageMaker processing (default: [{}])'.format(image))
     parser.add_argument('--sagemaker-instance', default=instance,
                         help='AWS SageMaker instance to run processing (default: [{}])'.format(instance))
-    parser.add_argument('--sagemaker-volume-size', default=volume_size,
+    parser.add_argument('--sagemaker-volume-size', default=volume_size, type=int,
                         help='AWS SageMaker volume size in GB (default: [{}])'.format(volume_size))
     sagemaker_processing_input_args(
         parser=parser,
