@@ -31,11 +31,15 @@ class PathArgument(object):
         self,
         local=None,
         remote='default',
-        optional=False
+        optional=False,
+        mode=None
     ):
         self.local = local
         self.remote = remote or 'default'
         self.optional = optional
+        self.mode = mode
+        if self.mode:
+            assert self.mode in ['Pipe', 'File','EndOfJob', 'Continuous']
         #if self.optional and self.local:
         #    print("Optional inputs must default to nothing")
 

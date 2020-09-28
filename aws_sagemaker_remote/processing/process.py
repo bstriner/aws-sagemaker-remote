@@ -30,7 +30,8 @@ def sagemaker_processing_run(args, config):
     inputs = {
         k: PathArgument(
             local=getattr(args, k),
-            optional=v.optional
+            optional=v.optional,
+            mode=getattr(args, "{}_mode".format(k) or v.mode or 'File')
          ) for k, v in config.inputs.items()
     }
     for k, v in inputs.items():
@@ -43,7 +44,8 @@ def sagemaker_processing_run(args, config):
         k: PathArgument(
             local=getattr(args, k),
             remote=getattr(args, "{}_s3".format(k)),
-            optional=v.optional
+            optional=v.optional,
+            mode=getattr(args, "{}_mode".format(k) or v.mode or 'EndOfJob')
         ) for k,v in config.outputs.items()
     }
     #for k, v in outputs.items():
@@ -125,14 +127,16 @@ def ensure_eol(file):
             outfile.write(text)
 
 
-def make_processing_input(mount, name, source):
+def make_processing_input(mount, name, source, mode=None):
     destination = "{}/{}".format(mount, name)
+    if mode:
+        assert mode in ['File', 'Pipe']
     processing_input = ProcessingInput(
         source=source,
         destination=destination,
         input_name=name,
         # s3_data_type='S3Prefix',
-        s3_input_mode='File',
+        s3_input_mode=mode or 'File',
         # s3_data_distribution_type='FullyReplicated',
         # s3_compression_type='None'
     )
@@ -208,7 +212,8 @@ def process(
         processing_input, path_argument = make_processing_input(
             mount=input_mount,
             name=name,
-            source=source.local
+            source=source.local,
+            mode=source.mode
         )
         processing_inputs.append(processing_input)
         path_arguments[name] = path_argument
@@ -295,12 +300,14 @@ def process(
             raise ValueError("Argument [{}] must be either `default` or an S3 url (`s3://...`). Value given was [{}].".format(
                 variable_to_argparse("{}_s3".format(name)), dest.remote))
         source="{}/{}".format(output_mount, name)
+        if dest.mode:
+            assert dest.mode in ['EndOfJob', 'Continuous']
         processing_outputs.append(
             ProcessingOutput(
                 source=source,
                 destination=dest.remote if dest.remote and dest.remote != 'default' else None,
                 output_name=name,
-                s3_upload_mode='EndOfJob'
+                s3_upload_mode=dest.mode or 'EndOfJob'
             ))
         path_arguments[name] = source
             

@@ -33,7 +33,6 @@ def main(args):
 
 if __name__ == '__main__':
     sagemaker_processing_main(
-        script=__file__, # script path for remote execution
         main=main, # main function for local execution
         inputs={
             # Add the command line flag `output`

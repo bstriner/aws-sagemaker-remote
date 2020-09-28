@@ -37,6 +37,9 @@ If running on SageMaker, local paths are uploaded to S3 then S3 data is download
 If running on SageMaker, S3 paths are downloaded to [`--sagemaker-input-mount`/{k}].
 (default: [{v}])
 """
+INPUT_MODE_HELP = """Input [{k}] mode. File or Pipe.
+(default: [{v}])
+"""
 
 OUTPUT_MOUNT = '/opt/ml/processing/output'
 OUTPUT_MOUNT_HELP = """Mount point for outputs.
@@ -51,6 +54,10 @@ If running locally, set to a local path.
 """
 OUTPUT_S3_HELP = """Output [{k}] S3 URI.
 Upload results to this URI. Empty string automatically generates a URI.
+(default: [{v}])
+"""
+OUTPUT_MODE_HELP = """Output [{k}] mode.
+Set to Continuous or EndOfJob.
 (default: [{v}])
 """
 
@@ -70,6 +77,11 @@ def sagemaker_processing_input_args(parser: argparse.ArgumentParser, inputs=None
                 flag,
                 default=v.local,
                 help=INPUT_HELP.format(k=k, v=v.local))
+            mode = v.mode or 'File'
+            parser.add_argument(
+                variable_to_argparse("{}_mode".format(k)),
+                default=mode,
+                help=INPUT_MODE_HELP.format(k=k, v=mode))
 
 
 def sagemaker_processing_output_args(parser: argparse.ArgumentParser, outputs=None,
@@ -90,6 +102,11 @@ def sagemaker_processing_output_args(parser: argparse.ArgumentParser, outputs=No
                 variable_to_argparse("{}_s3".format(k)),
                 default=v.remote,
                 help=OUTPUT_S3_HELP.format(k=k, v=v.remote))
+            mode = v.mode or 'EndOfJob'
+            parser.add_argument(
+                variable_to_argparse("{}_mode".format(k)),
+                default=mode,
+                help=OUTPUT_MODE_HELP.format(k=k, v=mode))
 
 
 def sagemaker_processing_module_args(parser: argparse.ArgumentParser, dependencies=None,

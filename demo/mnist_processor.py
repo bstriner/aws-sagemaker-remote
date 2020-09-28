@@ -28,8 +28,8 @@ if __name__ == '__main__':
         main=main, # main function for local execution
         outputs={
             # Add the command line flag `output`
-            # flag: (local default, s3 default)
-            'output': ('output/data', 'default')
+            # flag: default path
+            'output': 'output/data'
         },
         dependencies={
             # Add a module to SageMaker

@@ -51,26 +51,18 @@ def git_get_remote(file, name="origin"):
     cwd = os.path.dirname(os.path.abspath(file))
     try:
         proc = subprocess.run(
-            ["git", "remote", "show", name], capture_output=True, cwd=cwd, check=True)
+            ["git", "remote", "get-url", name], capture_output=True, cwd=cwd, check=True)
         remote = proc.stdout
         remote = remote.decode('utf-8')
         remote = remote.strip()
-        if remote:
-            m = re.search("Fetch\\s+URL\\s*:\\s*(.+)", remote)
-            if m:
-                url = m.group(1).strip()
-            else:
-                url = None
-            return remote, url
-        else:
-            return None, None
+        return remote
     except Exception as e:
         git_warn("remote", e)
-        return None, None
+        return None
 
 def git_get_tags(__file__):
     status, commit = git_get_status(__file__)
-    _, url = git_get_remote(__file__)
+    url = git_get_remote(__file__)
     branch = git_get_branch(__file__)
     tags = {
         "GitStatus": status,
