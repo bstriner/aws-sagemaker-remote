@@ -77,6 +77,7 @@ def sagemaker_training_run(
     )
 
     channels = config.inputs
+    channels = {k: getattr(args, k) for k in channels.keys()}
     channels = standardize_channels(channels=channels)
     channels = upload_local_channels(
         channels=channels, session=session, prefix=input_prefix)

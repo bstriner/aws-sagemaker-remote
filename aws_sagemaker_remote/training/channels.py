@@ -31,6 +31,9 @@ def upload_local_channel(channel, session, s3_uri):
         return channel
     elif url.scheme == 'file':
         path = url2pathname(url.path)
+        print("Uploading [{}] ([{}]) to [{}]".format(
+            channel, path, s3_uri
+        ))
         S3Uploader.upload(
             local_path=path,
             desired_s3_uri=s3_uri,
