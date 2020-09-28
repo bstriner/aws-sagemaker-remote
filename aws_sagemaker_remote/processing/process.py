@@ -280,21 +280,22 @@ def process(
         tags=tags
         # network_config=None
     )
+    processing_outputs = []
     for name, dest in outputs.items():
-        if not (dest[1] == 'default' or dest[1].startswith('s3://')):
+        # todo: move into PathArgument class
+        if not ((not dest.remote) or dest.remote == 'default' or dest.remote.startswith('s3://')):
             raise ValueError("Argument [{}] must be either `default` or an S3 url (`s3://...`). Value given was [{}].".format(
                 variable_to_argparse("{}_s3".format(name)), dest[1]))
-    processing_outputs = [
-        ProcessingOutput(
-            # source=v,
-            source="{}/{}".format(output_mount, name),
-            destination=dest[1] if dest[1] and len(
-                dest[1]) > 0 and dest[1] != 'default' else None,
-            output_name=name,
-            s3_upload_mode='EndOfJob'
-        )
-        for name, dest in outputs.items()
-    ]
+        source="{}/{}".format(output_mount, name)
+        processing_outputs.append(
+            ProcessingOutput(
+                source=source,
+                destination=dest[1] if dest[1] and dest[1] != 'default' else None,
+                output_name=name,
+                s3_upload_mode='EndOfJob'
+            ))
+        path_arguments[name] = source
+            
     ensure_eol(PROCESSING_SCRIPT)
     code = Path(PROCESSING_SCRIPT).as_uri()
     if job_name is None or len(str(job_name).strip()) == 0:

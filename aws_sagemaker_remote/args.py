@@ -30,13 +30,13 @@ class PathArgument(object):
     def __init__(
         self,
         local=None,
-        remote=None,
+        remote='default',
         optional=False
     ):
         self.local = local
-        self.remote = remote
+        self.remote = remote or 'default'
         self.optional = optional
-        if self.optional and (self.local or self.remote):
+        if self.optional and self.local:
             print("Optional inputs must default to nothing")
 
 OPTIONAL = PathArgument(optional=True)
