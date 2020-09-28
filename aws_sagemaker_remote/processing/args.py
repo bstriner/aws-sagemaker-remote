@@ -68,8 +68,8 @@ def sagemaker_processing_input_args(parser: argparse.ArgumentParser, inputs=None
             flag = variable_to_argparse(k)
             parser.add_argument(
                 flag,
-                default=v,
-                help=INPUT_HELP.format(k=k, v=v))
+                default=v.local,
+                help=INPUT_HELP.format(k=k, v=v.local))
 
 
 def sagemaker_processing_output_args(parser: argparse.ArgumentParser, outputs=None,
@@ -82,20 +82,14 @@ def sagemaker_processing_output_args(parser: argparse.ArgumentParser, outputs=No
             default=output_mount,
             help=OUTPUT_MOUNT_HELP.format(output_mount))
         for k, v in outputs.items():
-            if isinstance(v, (tuple, list)):
-                local_default, s3_default = v
-            else:
-                local_default = v
-                s3_default = 'default'
-            flag = variable_to_argparse(k)
             parser.add_argument(
-                flag,
-                default=local_default,
-                help=OUTPUT_HELP.format(k=k, v=local_default))
+                variable_to_argparse(k),
+                default=v.local,
+                help=OUTPUT_HELP.format(k=k, v=v.local))
             parser.add_argument(
                 variable_to_argparse("{}_s3".format(k)),
-                default=s3_default,
-                help=OUTPUT_S3_HELP.format(k=k, v=s3_default))
+                default=v.remote,
+                help=OUTPUT_S3_HELP.format(k=k, v=v.remote))
 
 
 def sagemaker_processing_module_args(parser: argparse.ArgumentParser, dependencies=None,
@@ -107,8 +101,7 @@ def sagemaker_processing_module_args(parser: argparse.ArgumentParser, dependenci
         default=module_mount,
         help=MODULE_MOUNT_HELP.format(module_mount))
     for k, v in dependencies.items():
-        varname = "module_{}".format(k)
-        flag = variable_to_argparse(varname)
+        flag = variable_to_argparse(k)
         parser.add_argument(
             flag,
             default=v,
@@ -170,17 +163,37 @@ def sagemaker_processing_args(
         Type of instance to use for processing (e.g., ``ml.t3.medium``). 
         Set default for ``--sagemaker-instance``.
     inputs : dict(str,str), optional
-        Dictionary of input arguments.
+        Dictionary of input argument keys to strings or :class:`aws_sagemaker_remote.args.PathArgument`.
+        Strings are converted to ``PathArgument`` with ``local`` set to your string.
+        This should be sufficient for most use cases.
         For eack key and value, create an argument ``--key`` that defaults to value.
 
         * Running locally, input arguments are unmodified.
         * Running remotely, inputs are set to appropriate SageMaker mount points. Local inputs are uploaded automatically.
-    outputs : dict(str, tuple(str))
-        Dictionary of output arguments.
+
+        For example:
+
+        .. code-block:: python
+        
+           import OPTIONAL, PathArgument from aws_sagemaker_remote.args
+           inputs = {
+               "my_input_1": "path/to/data1", # implicit
+               "my_input_2": PathArgument(local="path/to/data2"), # explicit
+               "my_optional_input": OPTIONAL
+           }
+
+        Your script will now have arguments ``--my-input-1``, ``--my-input-2``, and ``--my-optional-input``.
+
+    outputs : dict(str, str)
+        Dictionary of output arguments keys to strings or :class:`aws_sagemaker_remote.args.PathArgument`.
+        Strings are converted to ``PathArgument`` with ``local`` set to your string.
+        This should be sufficient for most use cases.
+        For eack key and value, create an argument ``--key`` that defaults to value.
+
         For eack key:
 
-            * Create an argument ``--key`` that defaults to value[0]. This controls an output path.
-            * Create an argument ``--key-s3`` that defaults to value[1]. This controls where output is stored on S3.
+            * Create an argument ``--key`` that defaults to ``value.local``. This controls an output path.
+            * Create an argument ``--key-s3`` that defaults to ``value.remote``. This controls where output is stored on S3.
               * Set to ``default`` to automatically create an output path based on the job name
               * Set to an S3 URL to store output at a specific location on S3
     dependencies : dict(str, str)
@@ -231,6 +244,12 @@ def sagemaker_processing_args(
         Function accepting one argument ``parser:argparse.ArgumentParser`` that adds additional arguments.
         Use to add additional arguments to the script.
     """
+    config = SageMakerProcessingConfig(
+        dependencies=dependencies,
+        inputs=inputs,
+        outputs=outputs
+    )
+
     if additional_arguments is None:
         additional_arguments = []
     sagemaker_profile_args(parser=parser, profile=profile)
@@ -271,12 +290,12 @@ def sagemaker_processing_args(
                         help='AWS SageMaker volume size in GB (default: [{}])'.format(volume_size))
     sagemaker_processing_input_args(
         parser=parser,
-        inputs=inputs,
+        inputs=config.inputs,
         input_mount=input_mount
     )
     sagemaker_processing_output_args(
         parser=parser,
-        outputs=outputs,
+        outputs=config.outputs,
         output_mount=output_mount
     )
     sagemaker_processing_module_args(
@@ -288,11 +307,7 @@ def sagemaker_processing_args(
         parser.add_argument(*args, **kwargs)
     if argparse_callback:
         argparse_callback(parser)
-    return SageMakerProcessingConfig(
-        dependencies=dependencies,
-        inputs=inputs,
-        outputs=outputs
-    )
+    return config
 
 
 def sagemaker_processing_parser_for_docs():

@@ -11,10 +11,12 @@ except:
 
 from ..session import sagemaker_session
 from .iam import ensure_processing_role
-from ..args import variable_to_argparse
+from ..args import variable_to_argparse, get_local_path
 from .args import PROCESSING_INSTANCE, PROCESSING_IMAGE, PROCESSING_JOB_NAME, PROCESSING_RUNTIME_SECONDS, INPUT_MOUNT, OUTPUT_MOUNT, MODULE_MOUNT
 from .config import SageMakerProcessingConfig
 from .args import sagemaker_processing_args
+from ..git import git_get_tags
+from ..tags import make_tags
 PROCESSING_SCRIPT = os.path.abspath(os.path.join(__file__, '../processing.sh'))
 
 
@@ -24,15 +26,30 @@ def sagemaker_processing_run(args, config):
     script = script.replace("\\", "/")
 
     session = sagemaker_session(profile_name=args.sagemaker_profile)
+
     inputs = {
         k: getattr(args, k) for k in config.inputs.keys()
+    }
+    for k, v in inputs.items():
+        if (not v) and (not config.inputs[k].optional):
+            raise ValueError("Value required for input agument [{}]".format(k))
+    inputs = {
+        k: v for k, v in inputs.items() if v
     }
     outputs = {
         k: (getattr(args, k), getattr(args, "{}_s3".format(k))) for k in config.outputs.keys()
     }
-    dependencies = {
-        k: getattr(args, "module_{}".format(k)) for k in config.dependencies.keys()
+    for k, v in outputs.items():
+        if (not v) and (not config.outputs[k].optional):
+            raise ValueError(
+                "Value required for output agument [{}_s3]".format(k))
+    outputs = {
+        k: v for k, v in outputs.items() if v
     }
+    dependencies = {
+        k: getattr(args, k) for k in config.dependencies.keys()
+    }
+    tags = git_get_tags(script)
     process(
         inputs=inputs,
         outputs=outputs,
@@ -57,7 +74,8 @@ def sagemaker_processing_run(args, config):
         requirements=args.sagemaker_requirements,
         configuration_script=args.sagemaker_configuration_script,
         configuration_command=args.sagemaker_configuration_command,
-        wait=args.sagemaker_wait
+        wait=args.sagemaker_wait,
+        tags=tags
     )
 
 
@@ -67,15 +85,15 @@ def make_arguments(args, config: SageMakerProcessingConfig):
     to_del.extend(config.inputs.keys())
     to_del.extend(config.outputs.keys())
     to_del.extend("{}_s3" for k in config.outputs.keys())
-    to_del.extend("module_{}".format(k) for k in config.dependencies.keys())
+    to_del.extend(config.dependencies.keys())
     for k in to_del:
         if k in vargs:
             del vargs[k]
     vargs['sagemaker_run'] = False
-    for k in config.inputs.keys():
-        vargs[k] = "{}/{}".format(args.sagemaker_input_mount, k)
-    for k in config.outputs.keys():
-        vargs[k] = "{}/{}".format(args.sagemaker_output_mount, k)
+    return vargs
+
+
+def sagemaker_arguments(vargs):
     arguments = []
     for k, v in vargs.items():
         if v is not None:
@@ -97,6 +115,36 @@ def ensure_eol(file):
             text = infile.read()
         with open(file, 'w', newline='\n') as outfile:
             outfile.write(text)
+
+
+def make_processing_input(mount, name, source):
+    destination = "{}/{}".format(mount, name)
+    processing_input = ProcessingInput(
+        source=source,
+        destination=destination,
+        input_name=name,
+        # s3_data_type='S3Prefix',
+        s3_input_mode='File',
+        # s3_data_distribution_type='FullyReplicated',
+        # s3_compression_type='None'
+    )
+    path = get_local_path(source)
+    if path:
+        if not os.path.exists(path):
+            raise ValueError(
+                "Local path [{}]: [{}] does not exist".format(name, source))
+        if os.path.isfile(path):
+            basename = os.path.basename(path)
+            path_argument = "{}/{}".format(destination, basename)
+        elif os.path.isdir(path):
+            path_argument = destination
+        else:
+            raise ValueError(
+                "Local path [{}] is neither file nor directory".format(source))
+    else:
+        # todo: detect isfile or folder on s3
+        path_argument = destination
+    return processing_input, path_argument
 
 
 def process(
@@ -122,7 +170,8 @@ def process(
     python='python3',
     wait=True,
     logs=True,
-    arguments=None
+    arguments=None,
+    tags=None
 ):
     iam = session.boto_session.client('iam')
     role = ensure_processing_role(iam=iam, role_name=role)
@@ -132,35 +181,38 @@ def process(
         outputs = {}
     if dependencies is None:
         dependencies = {}
+    if tags is None:
+        tags = {}
+    else:
+        tags = tags.copy()
+    if arguments is None:
+        arguments = {}
+    else:
+        arguments = arguments.copy()
     # if module_mount is not None and len(module_mount)> 0:
     #    command = ["PYTHONPATH={module_mount};${{PYTHONPATH}}".format(module_mount=module_mount), "python3"]
     # else:
     #    command = ['python3']
     command = ['sh']
-    processing_inputs = [
-        ProcessingInput(
-            source=source,
-            destination="{}/{}".format(input_mount, name),
-            input_name=name,
-            # s3_data_type='S3Prefix',
-            s3_input_mode='File',
-            # s3_data_distribution_type='FullyReplicated',
-            # s3_compression_type='None'
+    path_arguments = {}
+    processing_inputs = []
+    for name, source in inputs.items():
+        processing_input, path_argument = make_processing_input(
+            mount=input_mount,
+            name=name,
+            source=source
         )
-        for name, source in inputs.items()
-    ]
-    processing_inputs.extend([
-        ProcessingInput(
-            source=source,
-            destination="{}/{}".format(module_mount, name),
-            input_name="module_{}".format(name),
-            # s3_data_type='S3Prefix',
-            s3_input_mode='File',
-            # s3_data_distribution_type='FullyReplicated',
-            # s3_compression_type='None'
+        processing_inputs.append(processing_input)
+        path_arguments[name] = path_argument
+    for name, source in dependencies.items():
+        processing_input, path_argument = make_processing_input(
+            mount=module_mount,
+            name=name,
+            source=source
         )
-        for name, source in dependencies.items()
-    ])
+        processing_inputs.append(processing_input)
+        path_arguments[name] = path_argument
+
     script_remote = "{}/{}".format(module_mount, os.path.basename(script))
     processing_inputs.append(
         ProcessingInput(
@@ -179,7 +231,7 @@ def process(
         "AWS_SAGEMAKER_REMOTE_SCRIPT": script_remote
     }
 
-    if requirements and len(requirements) > 0:
+    if requirements:
         requirements_remote = "{}/requirements_txt/{}".format(
             module_mount, 'requirements.txt')
         env['AWS_SAGEMAKER_REMOTE_REQUIREMENTS'] = requirements_remote
@@ -192,7 +244,7 @@ def process(
             )
         )
 
-    if configuration_script and len(configuration_script) > 0:
+    if configuration_script:
         configuration_script_remote = "{}/{}".format(
             module_mount, os.path.basename(configuration_script))
         env['AWS_SAGEMAKER_REMOTE_CONFIGURATION_SCRIPT'] = configuration_script_remote
@@ -208,6 +260,10 @@ def process(
     if configuration_command and len(configuration_command) > 0:
         env['AWS_SAGEMAKER_REMOTE_CONFIGURATION_COMMAND'] = configuration_command
 
+    tags["Source"] = 'aws-sagemaker-remote'
+    tags["BaseJobName"] = base_job_name
+    tags = make_tags(tags)
+    print("Tags: {}".format(tags))
     processor = ScriptProcessor(
         role,
         image_uri=image,
@@ -221,16 +277,7 @@ def process(
         base_job_name=base_job_name,
         sagemaker_session=session,
         env=env,
-        tags=[
-            {
-                "Key": "Source",
-                "Value": 'aws-sagemaker-remote'
-            },
-            {
-                "Key": "Name",
-                "Value": base_job_name
-            }
-        ]
+        tags=tags
         # network_config=None
     )
     for name, dest in outputs.items():
@@ -254,6 +301,8 @@ def process(
         job_name = None
     else:
         job_name = str(job_name).strip()
+
+    arguments.update(path_arguments)
     processor.run(
         code=code,
         inputs=processing_inputs,
@@ -261,6 +310,6 @@ def process(
         wait=wait,
         logs=logs,
         job_name=job_name,
-        arguments=arguments
+        arguments=sagemaker_arguments(vargs=arguments)
     )
     return processor

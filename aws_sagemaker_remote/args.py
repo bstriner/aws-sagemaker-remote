@@ -1,8 +1,63 @@
 import argparse
 from distutils.util import strtobool
 import os
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 PROFILE = 'default'
+
+
+def get_local_path(path):
+    if not path:
+        return None
+    elif os.path.exists(path):
+        return os.path.abspath(path)
+    else:
+        try:
+            url = urlparse(path)
+            if url.scheme in ['file', '']:
+                path = url2pathname(url.path)
+                return os.path.abspath(path)
+            elif url.scheme in ['s3']:
+                return None
+            else:
+                raise ValueError("Unknown scheme or path does not exist: [{}]".format(path))
+        except:
+            pass
+        return None
+
+class PathArgument(object):
+    def __init__(
+        self,
+        local=None,
+        remote=None,
+        optional=False
+    ):
+        self.local = local
+        self.remote = remote
+        self.optional = optional
+        if self.optional and (self.local or self.remote):
+            print("Optional inputs must default to nothing")
+
+OPTIONAL = PathArgument(optional=True)
+
+def convert_path_argument(param, cls=PathArgument):
+    if isinstance(param, cls):
+        return param
+    elif isinstance(param, str):
+        return cls(param)
+    else:
+        raise ValueError(
+            "Unexpected path type [{}]: [{}]".format(type(param), param))
+
+
+def convert_path_arguments(params, cls=PathArgument):
+    if params:
+        return {
+            k: convert_path_argument(v, cls=cls) for k, v in params.items()
+        }
+    else:
+        return {}
 
 
 def variable_to_argparse(variable):

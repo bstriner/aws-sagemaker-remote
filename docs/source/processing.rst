@@ -126,7 +126,8 @@ The environment can be customized in multiple ways.
 Additional arguments
 --------------------
 
-Any arguments passed to your script locally on the command line are passed to your script remotely and tracked by SageMaker. Internally, ``sagemaker_processing_main`` uses ``argparse``. To add additional command-line flags:
+Any arguments passed to your script locally on the command line are passed to your script remotely and tracked by SageMaker.
+ Internally, ``sagemaker_processing_main`` uses ``argparse``. To add additional command-line flags:
 
 
 * Pass a list of kwargs dictionaries to  ``additional_arguments``
@@ -168,6 +169,11 @@ Any arguments passed to your script locally on the command line are passed to yo
       argparse_callback=argparse_callback
     )
 
+**Note:** local command-line arguments are parsed, stored on SageMaker, then used to generate a command line for your script.
+- All flags are serialized into a string to string dictionary.
+- All flags must have a single non-empty argument.
+- Use CSV, JSON, or other methods to use string arguments instead of repeated arguments.
+- Explicity passing empty arguments on the command-line is not supported.
 
 .. _Processing Command-Line Arguments:
 

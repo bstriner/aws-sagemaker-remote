@@ -14,10 +14,10 @@ Remotely run and track ML research using AWS SageMaker.
 
 Track three types of objects in a standard way:
 
-
 * Processing jobs consume file inputs and produce file outputs. Useful for data conversion, extraction, etc.
 * Training jobs train models while tracking metrics and hyperparameters.
 * Inference models provide predictions and can be deployed on endpoints. Can be automatically created from and linked to training jobs for tracking purposes or can deploy externally-created models.
+
 
 Installation
 =======================

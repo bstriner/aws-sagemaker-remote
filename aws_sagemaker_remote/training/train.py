@@ -6,6 +6,8 @@ from .channels import standardize_channels, upload_local_channels
 from sagemaker.utils import name_from_base
 from .iam import ensure_training_role
 from .experiment import ensure_experiment
+from ..git import git_get_tags
+from ..tags import make_tags
 CHECKPOINT_LOCAL_PATH = '/opt/ml/checkpoints'
 
 
@@ -40,6 +42,11 @@ def sagemaker_training_run(
         job_name = args.sagemaker_job_name
     else:
         job_name = name_from_base(args.sagemaker_base_job_name)
+    tags = git_get_tags(script)
+    tags["Source"] = 'aws-sagemaker-remote'
+    tags["JobName"] = job_name
+    tags["BaseJobName"] = args.sagemaker_base_job_name
+    tags = make_tags(tags)
     #checkpoint_s3_uri = 's3://{}/{}/checkpoints'.format(bucket, job_name)
     input_prefix = "s3://{}/{}/inputs".format(bucket, job_name)
     iam = session.boto_session.client('iam')
@@ -65,7 +72,8 @@ def sagemaker_training_run(
         # checkpoint_s3_uri=checkpoint_s3_uri,
         checkpoint_local_path=CHECKPOINT_LOCAL_PATH,
         use_spot_instances=args.sagemaker_spot_instances,
-        hyperparameters=hyperparameters
+        hyperparameters=hyperparameters,
+        tags=tags
     )
 
     channels = config.inputs
