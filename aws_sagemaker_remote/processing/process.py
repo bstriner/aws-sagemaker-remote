@@ -11,7 +11,7 @@ except:
 
 from ..session import sagemaker_session
 from .iam import ensure_processing_role
-from ..args import variable_to_argparse, get_local_path
+from ..args import variable_to_argparse, get_local_path, PathArgument
 from .args import PROCESSING_INSTANCE, PROCESSING_IMAGE, PROCESSING_JOB_NAME, PROCESSING_RUNTIME_SECONDS, INPUT_MOUNT, OUTPUT_MOUNT, MODULE_MOUNT
 from .config import SageMakerProcessingConfig
 from .args import sagemaker_processing_args
@@ -28,24 +28,32 @@ def sagemaker_processing_run(args, config):
     session = sagemaker_session(profile_name=args.sagemaker_profile)
 
     inputs = {
-        k: getattr(args, k) for k in config.inputs.keys()
+        k: PathArgument(
+            local=getattr(args, k),
+            optional=v.optional
+         ) for k, v in config.inputs.items()
     }
     for k, v in inputs.items():
-        if (not v) and (not config.inputs[k].optional):
+        if (not v.local) and (not v.optional):
             raise ValueError("Value required for input agument [{}]".format(k))
     inputs = {
-        k: v for k, v in inputs.items() if v
+        k: v for k, v in inputs.items() if v.local
     }
     outputs = {
-        k: (getattr(args, k), getattr(args, "{}_s3".format(k))) for k in config.outputs.keys()
+        k: PathArgument(
+            local=getattr(args, k),
+            remote=getattr(args, "{}_s3".format(k)),
+            optional=v.optional
+        ) for k,v in config.outputs.items()
     }
-    for k, v in outputs.items():
-        if (not v) and (not config.outputs[k].optional):
-            raise ValueError(
-                "Value required for output agument [{}_s3]".format(k))
-    outputs = {
-        k: v for k, v in outputs.items() if v
-    }
+    #for k, v in outputs.items():
+    #    if (not v) and (not config.outputs[k].optional):
+    #        raise ValueError(
+    #            "Value required for output agument [{}_s3]".format(k))
+    #outputs = {
+    #    k: v for k, v in outputs.items() if v
+    #}
+    #todo: optional arguments
     dependencies = {
         k: getattr(args, k) for k in config.dependencies.keys()
     }
@@ -200,7 +208,7 @@ def process(
         processing_input, path_argument = make_processing_input(
             mount=input_mount,
             name=name,
-            source=source
+            source=source.local
         )
         processing_inputs.append(processing_input)
         path_arguments[name] = path_argument
@@ -285,12 +293,12 @@ def process(
         # todo: move into PathArgument class
         if not ((not dest.remote) or dest.remote == 'default' or dest.remote.startswith('s3://')):
             raise ValueError("Argument [{}] must be either `default` or an S3 url (`s3://...`). Value given was [{}].".format(
-                variable_to_argparse("{}_s3".format(name)), dest[1]))
+                variable_to_argparse("{}_s3".format(name)), dest.remote))
         source="{}/{}".format(output_mount, name)
         processing_outputs.append(
             ProcessingOutput(
                 source=source,
-                destination=dest[1] if dest[1] and dest[1] != 'default' else None,
+                destination=dest.remote if dest.remote and dest.remote != 'default' else None,
                 output_name=name,
                 s3_upload_mode='EndOfJob'
             ))

@@ -36,8 +36,8 @@ class PathArgument(object):
         self.local = local
         self.remote = remote or 'default'
         self.optional = optional
-        if self.optional and self.local:
-            print("Optional inputs must default to nothing")
+        #if self.optional and self.local:
+        #    print("Optional inputs must default to nothing")
 
 OPTIONAL = PathArgument(optional=True)
 
