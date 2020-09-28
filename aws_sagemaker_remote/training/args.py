@@ -67,7 +67,8 @@ def sagemaker_training_args(
     enable_sagemaker=True,
     experiment_name=None,
     trial_name=None,
-    spot_instances=False
+    spot_instances=False,
+    volume_size=30
 ):
     r"""
     Configure ``argparse.ArgumentParser`` for training scripts.
@@ -189,6 +190,11 @@ def sagemaker_training_args(
             '--sagemaker-trial-name',
             default=trial_name,
             help='Name of experiment trial in SageMaker tracking.')
+        parser.add_argument(
+            '--sagemaker-volume-size',
+            type=int,
+            default=volume_size,
+            help='Volume size in GB.')
         sagemaker_training_dependency_args(
             parser=parser, dependencies=dependencies)
     sagemaker_training_model_args(parser=parser, model_dir=model_dir)

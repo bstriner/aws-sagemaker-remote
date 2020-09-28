@@ -73,6 +73,7 @@ def sagemaker_training_run(
         checkpoint_local_path=CHECKPOINT_LOCAL_PATH,
         use_spot_instances=args.sagemaker_spot_instances,
         hyperparameters=hyperparameters,
+        volume_size=args.sagemaker_volume_size,
         tags=tags
     )
 
