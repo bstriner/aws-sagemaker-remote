@@ -14,9 +14,29 @@ TRAINING_IMAGE = '683880991063.dkr.ecr.us-east-1.amazonaws.com/columbo-sagemaker
 TRAINING_INSTANCE = 'ml.m5.large'
 TRAINING_ROLE = 'aws-sagemaker-remote-training-role'
 BASE_JOB_NAME = 'training-job'
+CHECKPOINT_LOCAL_PATH = '/opt/ml/checkpoints'
 
+"""
+def sagemaker_env_args(config):
+    args = {}
+    output_dir = os.environ.get('SM_OUTPUT_DIR', None)
+    if output_dir:
+        args['output_dir'] = output_dir
+    model_dir = os.environ.get('SM_MODEL_DIR', None)
+    if model_dir:
+        args['model_dir'] = model_dir
+    for channel in config.inputs.keys():
+        env_key = 'SM_CHANNEL_{}'.format(channel.upper())
+        channel_dir = os.environ.get(env_key, None)
+        if channel_dir:
+            args[channel] = channel_dir
+    return args
+"""
 
 def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig):
+    """
+    Check for ``SM_TRAINING_ENV`` environment variable and use it to override arguments.
+    """
     sm_env = os.getenv('SM_TRAINING_ENV', None)
     if sm_env:
         kwargs = vars(args)
@@ -59,8 +79,11 @@ def sagemaker_training_args(
     dependencies=None,
     additional_arguments=None,
     argparse_callback=None,
-    model_dir='output/model',
-    output_dir='output/output',
+    model_dir='output',
+    output_dir='output',
+    checkpoint_dir='output',
+    checkpoint_s3='default',
+    checkpoint_container=CHECKPOINT_LOCAL_PATH,
     training_image=TRAINING_IMAGE,
     training_instance=TRAINING_INSTANCE,
     training_role=TRAINING_ROLE,
@@ -118,11 +141,20 @@ def sagemaker_training_args(
         Function accepting one argument ``parser:argparse.ArgumentParser`` that adds additional arguments.
         Use to add additional arguments to the script.
     model_dir: string, optional
-        Directory to save trained model.
+        Directory to save trained inference model.
         Set default for ``--model-dir``.
     output_dir: string, optional
         Directory to save outputs (images, logs, etc.).
         Set default for ``--output-dir``.
+    checkpoint_dir: string, optional
+        Directory to save checkpoints for saving and resuming training.
+        Set default for ``--checkpoint-dir``.
+    checkpoint_s3: string, optional
+        S3 storage for checkpoints for saving and resuming training or "default".
+        Set default for ``--sagemaker-checkpoint-s3``.
+    checkpoint_container: string, optional
+        Local directory for checkpoints when running remotely.
+        Set default for ``--sagemaker-checkpoint-container``.
     training_image : str, optional
         URI of ECR or DockerHub Docker image to use for training. 
         Set default for ``--sagemaker-training-image``.
@@ -199,6 +231,9 @@ def sagemaker_training_args(
             parser=parser, dependencies=dependencies)
     sagemaker_training_model_args(parser=parser, model_dir=model_dir)
     sagemaker_training_output_args(parser=parser, output_dir=output_dir)
+    sagemaker_training_checkpoint_args(
+        parser=parser, checkpoint_dir=checkpoint_dir, checkpoint_s3=checkpoint_s3,
+        enable_sagemaker=enable_sagemaker)
     sagemaker_training_channel_args(parser=parser, inputs=inputs)
     if additional_arguments:
         for args, kwargs in additional_arguments:
@@ -208,11 +243,27 @@ def sagemaker_training_args(
     return SageMakerTrainingConfig(inputs=inputs, dependencies=dependencies)
 
 
+
 def sagemaker_training_output_args(parser: argparse.ArgumentParser, output_dir):
     output_dir = os.environ.get('SM_OUTPUT_DIR', output_dir)
     parser.add_argument('--output-dir', type=str,
                         default=output_dir,
-                        help='directory for checkpoints, logs, images, or other output files (default: "{}")'.format(output_dir))
+                        help='Directory for logs, images, or other output files (default: "{}")'.format(output_dir))
+
+
+def sagemaker_training_checkpoint_args(
+        parser: argparse.ArgumentParser, checkpoint_dir,
+        checkpoint_s3='default', checkpoint_container=CHECKPOINT_LOCAL_PATH, enable_sagemaker=True):
+    parser.add_argument('--checkpoint-dir', type=str,
+                        default=checkpoint_dir,
+                        help='Local directory to store checkpoints for resuming training (default: "{}")'.format(checkpoint_dir))
+    if enable_sagemaker:
+        parser.add_argument('--sagemaker-checkpoint-s3', type=str,
+                            default=checkpoint_s3,
+                            help='Location to store checkpoints on S3 or "default" (default: "{}")'.format(checkpoint_s3))
+        parser.add_argument('--sagemaker-checkpoint-container', type=str,
+                            default=checkpoint_container,
+                            help='Location to store checkpoints on container (default: "{}")'.format(checkpoint_container))
 
 
 def sagemaker_training_dependency_args(parser: argparse.ArgumentParser, dependencies):

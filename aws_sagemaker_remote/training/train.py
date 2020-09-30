@@ -8,7 +8,6 @@ from .iam import ensure_training_role
 from .experiment import ensure_experiment
 from ..git import git_get_tags
 from ..tags import make_tags
-CHECKPOINT_LOCAL_PATH = '/opt/ml/checkpoints'
 
 
 def sagemaker_training_run(
@@ -38,7 +37,7 @@ def sagemaker_training_run(
 
     # checkpoint_local_path='/opt/ml/checkpoints/'
     bucket = session.default_bucket()
-    if args.sagemaker_job_name and len(args.sagemaker_job_name.strip()) > 0:
+    if args.sagemaker_job_name and args.sagemaker_job_name.strip():
         job_name = args.sagemaker_job_name
     else:
         job_name = name_from_base(args.sagemaker_base_job_name)
@@ -56,6 +55,14 @@ def sagemaker_training_run(
                        for k, v in vars(args).items() if v is not None and len(str(v)) > 0}
     hyperparameters['sagemaker-run'] = 'False'
     print("Hyperparameters: {}".format(hyperparameters))
+    if args.sagemaker_checkpoint_s3 and args.sagemaker_checkpoint_s3 != 'default':
+        if not args.sagemaker_checkpoint_s3.startswith('s3://'):
+            raise ValueError("--sagemaker-checkpoint-s3 must be an S3 URI (s3://...) or \"default\"")
+        checkpoint_s3 = args.sagemaker_checkpoint_s3
+    else:
+        checkpoint_s3 =  "s3://{}/{}/checkpoints".format(bucket, job_name)
+    hyperparameters['checkpoint-dir'] = args.sagemaker_checkpoint_container
+    
     estimator = PyTorch(
         sagemaker_session=session,
         base_job_name=args.sagemaker_base_job_name,
@@ -69,8 +76,8 @@ def sagemaker_training_run(
         # hyperparameters=hyperparameters_from_argparse(vars(args)),
         metric_definitions=metric_definitions,
         dependencies=dependencies,
-        # checkpoint_s3_uri=checkpoint_s3_uri,
-        checkpoint_local_path=CHECKPOINT_LOCAL_PATH,
+        checkpoint_s3_uri=checkpoint_s3,
+        checkpoint_local_path=args.sagemaker_checkpoint_container,
         use_spot_instances=args.sagemaker_spot_instances,
         hyperparameters=hyperparameters,
         volume_size=args.sagemaker_volume_size,
