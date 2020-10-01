@@ -33,12 +33,14 @@ def sagemaker_env_args(config):
     return args
 """
 
+
 def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig):
     """
     Check for ``SM_TRAINING_ENV`` environment variable and use it to override arguments.
     """
     sm_env = os.getenv('SM_TRAINING_ENV', None)
     if sm_env:
+        print("Detected SageMaker environment")
         kwargs = vars(args)
         data = json.loads(sm_env)
         ci = data.get('channel_input_dirs', None)
@@ -48,13 +50,16 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
                 v = ci.get(k, None)
                 if v:
                     aux[k] = v
+                    print("SageMaker input [{}]: [{}]".format(k, v))
             kwargs.update(aux)
-        output_dir = data.get('output_dir', None)
+        output_dir = data.get('output_data_dir', None)
         if output_dir:
             kwargs['output_dir'] = output_dir
+            print("SageMaker output_dir: [{}]".format(output_dir))
         model_dir = data.get('model_dir', None)
         if model_dir:
             kwargs['model_dir'] = model_dir
+            print("SageMaker model_dir: [{}]".format(model_dir))
         kwargs['sagemaker_run'] = False
         new_args = argparse.Namespace(
             **kwargs
@@ -248,7 +253,10 @@ def sagemaker_training_args(
     sagemaker_training_model_args(parser=parser, model_dir=model_dir)
     sagemaker_training_output_args(parser=parser, output_dir=output_dir)
     sagemaker_training_checkpoint_args(
-        parser=parser, checkpoint_dir=checkpoint_dir, checkpoint_s3=checkpoint_s3,
+        parser=parser,
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_s3=checkpoint_s3,
+        checkpoint_container=checkpoint_container,
         enable_sagemaker=enable_sagemaker)
     sagemaker_training_channel_args(parser=parser, inputs=inputs)
     if additional_arguments:
@@ -257,7 +265,6 @@ def sagemaker_training_args(
     if argparse_callback:
         argparse_callback(parser)
     return SageMakerTrainingConfig(inputs=inputs, dependencies=dependencies)
-
 
 
 def sagemaker_training_output_args(parser: argparse.ArgumentParser, output_dir):
