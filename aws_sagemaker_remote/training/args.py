@@ -91,7 +91,9 @@ def sagemaker_training_args(
     experiment_name=None,
     trial_name=None,
     spot_instances=False,
-    volume_size=30
+    volume_size=30,
+    max_run=60*60*12,
+    max_wait=60*60*24
 ):
     r"""
     Configure ``argparse.ArgumentParser`` for training scripts.
@@ -173,6 +175,10 @@ def sagemaker_training_args(
     enable_sagemaker : bool, optional
         * True: Include SageMaker command-line options.
         * False: Only include local command-line options
+    max_run : int, optional
+        Maximum training time in seconds.
+    max_wait : int, optional
+        Maximum time to wait for a spot instance in seconds.
     """
     if enable_sagemaker:
         sagemaker_profile_args(parser=parser, profile=profile)
@@ -227,6 +233,16 @@ def sagemaker_training_args(
             type=int,
             default=volume_size,
             help='Volume size in GB.')
+        parser.add_argument(
+            '--sagemaker-max-run',
+            type=int,
+            default=max_run,
+            help='Maximum runtime in seconds.')
+        parser.add_argument(
+            '--sagemaker-max-wait',
+            type=int,
+            default=max_wait,
+            help='Maximum time to wait for spot instances in seconds.')
         sagemaker_training_dependency_args(
             parser=parser, dependencies=dependencies)
     sagemaker_training_model_args(parser=parser, model_dir=model_dir)

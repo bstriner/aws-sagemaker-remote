@@ -62,7 +62,7 @@ def sagemaker_training_run(
     else:
         checkpoint_s3 =  "s3://{}/{}/checkpoints".format(bucket, job_name)
     hyperparameters['checkpoint-dir'] = args.sagemaker_checkpoint_container
-    
+
     estimator = PyTorch(
         sagemaker_session=session,
         base_job_name=args.sagemaker_base_job_name,
@@ -81,7 +81,9 @@ def sagemaker_training_run(
         use_spot_instances=args.sagemaker_spot_instances,
         hyperparameters=hyperparameters,
         volume_size=args.sagemaker_volume_size,
-        tags=tags
+        tags=tags,
+        max_wait=args.sagemaker_max_wait if args.sagemaker_spot_instances else None,
+        max_run=args.sagemaker_max_run
     )
 
     channels = config.inputs
