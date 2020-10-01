@@ -33,6 +33,39 @@ Pass function argument ``run=True`` or command line argument ``--sagemaker-run=T
   and the default values. See :meth:`aws_sagemaker_remote.training.main.sagemaker_training_main` and
   :meth:`aws_sagemaker_remote.training.args.sagemaker_training_args`
 
+Path Handling
+--------------
+
+Inputs
+************
+
+Configure inputs by passing an ``inputs`` dictionary argument to ``sagemaker_training_main``.
+See :meth:`aws_sagemaker_remote.args.sagemaker_training_args`
+
+For example, if your dictionary contains the key ``my_dataset``:
+
+* The command line argument ``--my-dataset`` accepts local paths or S3 URLs
+* Local paths are uploaded to S3
+* Data downloaded from S3 to container
+* Location of data on container pulled from environment
+* Your main function is called with ``args.my_dataset`` set to EFS mount on container
+
+Outputs
+************
+
+There are three output paths:
+
+* ``args.model_dir`` and ``--model-dir``: Directory to export trained inference model.
+  Used when deploying model for inference. Save everything you need for inference but don't
+  save optimizers to minimize inference deployment.
+* ``args.output_dir`` and ``--output-dir``: Directory for outputs (logs, images, etc.)
+* ``args.checkpoint_dir`` and ``--checkpoint-dir``: Directory for training checkpoints.
+  Save model, optimizer, step count, anything else you need. This will be backed up and restored
+  if training is interrupted.
+
+Running locally, arguments are passed through. If running on SageMaker, arguments
+are automatically set to mountpoints which are uploaded to S3.
+
 Training Job Tracking
 -----------------------
 
@@ -56,7 +89,6 @@ Many command line options are added by this command.
 
 Option ``--sagemaker-run`` controls local or remote execution.
 
-
 * Set ``--sagemaker-run`` to a falsy value (no,false,0), the script will call your main function as usual and run locally. 
 * Set ``--sagemaker-run`` to a truthy value (yes,true,1), the script will upload itself and any requirements or inputs to S3, execute remotely on SageMaker, and save outputs to S3, logging results to the terminal.
 
@@ -64,11 +96,11 @@ Set ``--sagemaker-wait`` truthy to tail logs and wait for completion or falsy to
 
 Defaults are set through code. Defaults can be overwritten on the command line. For example:
 
-
 * Use the function argument ``image`` to set the default container image for your script
 * Use the command line argument ``--sagemaker-image`` to override the container image on a particular run
 
-See **functions** and **commands** (todo: links)
+See :meth:`aws_sagemaker_remote.args.sagemaker_training_args` and `Command-Line Arguments` for details.
+
 
 Environment Customization
 -------------------------
@@ -105,6 +137,16 @@ The environment can be customized in multiple ways.
   * Each ``value`` is a directory containing a Python module that will be uploaded to S3, downloaded to SageMaker, and put on the PYTHONPATH
   * For example, if directory ``mymodule`` contains the files ``__init__.py`` and ``myfile.py`` and ``myfile.py`` contains ``def myfunction():...``\ , pass ``dependencies={'mymodule':'path/to/mymodule'}`` to ``sagemaker_processing_main`` and then use ``from mymodule.myfile import myfunction`` in your script.
   * Use module uploads for supporting code that is not being installed from packages.
+
+Spot Training
+--------------
+
+Save on training costs by using spot training. Rather than starting immediately, AWS runs training when excess processing is available
+in exchange for cost savings.
+
+* ``--sagemaker-spot-instances=yes`` Use spot instances
+* ``--sagemaker-max-run`` Maximum training runtime in seconds
+* ``--sagemaker-max-wait`` Maximum time to wait in seconds, must be greater than the runtime.
 
 Additional arguments
 --------------------

@@ -39,19 +39,22 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
     Check for ``SM_TRAINING_ENV`` environment variable and use it to override arguments.
     """
     sm_env = os.getenv('SM_TRAINING_ENV', None)
+    kwargs = vars(args)
     if sm_env:
         print("Detected SageMaker environment")
-        kwargs = vars(args)
         data = json.loads(sm_env)
         ci = data.get('channel_input_dirs', None)
         if ci:
-            aux = {}
             for k in config.inputs.keys():
                 v = ci.get(k, None)
                 if v:
-                    aux[k] = v
+                    kwargs[k] = v
                     print("SageMaker input [{}]: [{}]".format(k, v))
-            kwargs.update(aux)
+                else:
+                    del kwargs[k]
+        else:
+            for k in config.inputs.keys():
+                del kwargs[k]
         output_dir = data.get('output_data_dir', None)
         if output_dir:
             kwargs['output_dir'] = output_dir
@@ -60,15 +63,20 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
         if model_dir:
             kwargs['model_dir'] = model_dir
             print("SageMaker model_dir: [{}]".format(model_dir))
+        job_name = data.get('job_name',None)
+        if job_name:
+            kwargs['sagemaker_job_name'] = job_name
+            print("SageMaker job_name: [{}]".format(job_name))
         kwargs['sagemaker_run'] = False
-        new_args = argparse.Namespace(
-            **kwargs
-        )
-        print("Original args: {}".format(args))
-        print("Updated args: {}".format(new_args))
-        return new_args
+        kwargs['is_sagemaker']=True
     else:
-        return args
+        kwargs['is_sagemaker']=False
+    new_args = argparse.Namespace(
+        **kwargs
+    )
+    #print("Original args: {}".format(args))
+    #print("Updated args: {}".format(new_args))
+    return new_args
 
 
 def sagemaker_training_args(

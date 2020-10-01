@@ -62,6 +62,7 @@ def sagemaker_training_run(
     else:
         checkpoint_s3 =  "s3://{}/{}/checkpoints".format(bucket, job_name)
     hyperparameters['checkpoint-dir'] = args.sagemaker_checkpoint_container
+    del hyperparameters['sagemaker-job-name']
 
     estimator = PyTorch(
         sagemaker_session=session,

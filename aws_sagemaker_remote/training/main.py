@@ -2,6 +2,8 @@ from .train import sagemaker_training_run
 from .args import sagemaker_training_args, sagemaker_env_args
 from argparse import ArgumentParser
 import inspect
+import os
+import warnings
 
 
 def sagemaker_training_main(
@@ -51,6 +53,8 @@ def sagemaker_training_main(
     args = parser.parse_args()
     if args.sagemaker_run:
         # Remote processing
+        if os.getenv('SM_TRAINING_ENV',None):
+            warnings.warn("Trying to start a SageMaker container from a SageMaker container. Possible loop detected.")
         sagemaker_training_run(
             args=args,
             config=config,
