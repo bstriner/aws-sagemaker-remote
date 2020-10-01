@@ -48,13 +48,16 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
             for k in config.inputs.keys():
                 v = ci.get(k, None)
                 if v:
-                    kwargs[k] = v
+                    suffix = kwargs.get('{}_suffix'.format(k), None)
+                    if suffix:
+                        v = os.path.join(v, suffix)
                     print("SageMaker input [{}]: [{}]".format(k, v))
+                    kwargs[k] = v
                 else:
-                    del kwargs[k]
+                    kwargs[k] = None
         else:
             for k in config.inputs.keys():
-                del kwargs[k]
+                kwargs[k] = None
         output_dir = data.get('output_data_dir', None)
         if output_dir:
             kwargs['output_dir'] = output_dir
@@ -317,6 +320,8 @@ def sagemaker_training_channel_args(parser: argparse.ArgumentParser, inputs):
             parser.add_argument(
                 flag, type=str,  default=default,
                 help=CHANNEL_HELP.format(channel=channel, default=default))
+            suffix_flag = variable_to_argparse("{}_suffix".format(channel))
+            parser.add_argument(suffix_flag, help=argparse.SUPPRESS, default="", type=str)
 
 
 def sagemaker_training_model_args(parser: argparse.ArgumentParser,

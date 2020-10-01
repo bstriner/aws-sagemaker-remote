@@ -17,6 +17,7 @@ from .config import SageMakerProcessingConfig
 from .args import sagemaker_processing_args
 from ..git import git_get_tags
 from ..tags import make_tags
+from ..s3 import is_s3_file
 PROCESSING_SCRIPT = os.path.abspath(os.path.join(__file__, '../processing.sh'))
 
 
@@ -91,7 +92,7 @@ def sagemaker_processing_run(args, config):
 
 def make_arguments(args, config: SageMakerProcessingConfig):
     vargs = vars(args)
-    to_del = ['sagemaker_run']  # , 'sagemaker_role', 'sagemaker_profile']
+    to_del = ['sagemaker_run','sagemaker_job_name']  # , 'sagemaker_role', 'sagemaker_profile']
     to_del.extend(config.inputs.keys())
     to_del.extend(config.outputs.keys())
     to_del.extend("{}_s3" for k in config.outputs.keys())
@@ -127,7 +128,7 @@ def ensure_eol(file):
             outfile.write(text)
 
 
-def make_processing_input(mount, name, source, mode=None):
+def make_processing_input(mount, name, source, s3, mode=None):
     destination = "{}/{}".format(mount, name)
     if mode:
         assert mode in ['File', 'Pipe']
@@ -154,8 +155,11 @@ def make_processing_input(mount, name, source, mode=None):
             raise ValueError(
                 "Local path [{}] is neither file nor directory".format(source))
     else:
-        # todo: detect isfile or folder on s3
-        path_argument = destination
+        if is_s3_file(source, s3=s3):
+            basename = os.path.basename(source)
+            path_argument = "{}/{}".format(destination, basename)
+        else:
+            path_argument = destination
     return processing_input, path_argument
 
 
@@ -208,12 +212,14 @@ def process(
     command = ['sh']
     path_arguments = {}
     processing_inputs = []
+    s3 = session.boto_session.client('s3')
     for name, source in inputs.items():
         processing_input, path_argument = make_processing_input(
             mount=input_mount,
             name=name,
             source=source.local,
-            mode=source.mode
+            mode=source.mode,
+            s3=s3
         )
         processing_inputs.append(processing_input)
         path_arguments[name] = path_argument
@@ -221,7 +227,8 @@ def process(
         processing_input, path_argument = make_processing_input(
             mount=module_mount,
             name=name,
-            source=source
+            source=source,
+            s3=s3
         )
         processing_inputs.append(processing_input)
         path_arguments[name] = path_argument

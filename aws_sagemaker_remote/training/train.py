@@ -8,7 +8,7 @@ from .iam import ensure_training_role
 from .experiment import ensure_experiment
 from ..git import git_get_tags
 from ..tags import make_tags
-
+from ..s3 import get_file_type, FileType
 
 def sagemaker_training_run(
     args,
@@ -54,7 +54,6 @@ def sagemaker_training_run(
     hyperparameters = {k.replace('_', '-'): str(v)
                        for k, v in vars(args).items() if v is not None and len(str(v)) > 0}
     hyperparameters['sagemaker-run'] = 'False'
-    print("Hyperparameters: {}".format(hyperparameters))
     if args.sagemaker_checkpoint_s3 and args.sagemaker_checkpoint_s3 != 'default':
         if not args.sagemaker_checkpoint_s3.startswith('s3://'):
             raise ValueError("--sagemaker-checkpoint-s3 must be an S3 URI (s3://...) or \"default\"")
@@ -62,7 +61,27 @@ def sagemaker_training_run(
     else:
         checkpoint_s3 =  "s3://{}/{}/checkpoints".format(bucket, job_name)
     hyperparameters['checkpoint-dir'] = args.sagemaker_checkpoint_container
-    del hyperparameters['sagemaker-job-name']
+    if 'sagemaker-job-name' in hyperparameters:
+        del hyperparameters['sagemaker-job-name']
+
+    channels = config.inputs
+    channels = {k: getattr(args, k) for k in channels.keys()}
+    channels = standardize_channels(channels=channels)
+    channels = upload_local_channels(
+        channels=channels, session=session, prefix=input_prefix)
+
+    s3 = session.boto_session.client('s3')
+    for k,v in channels.items():
+        key = '{}-suffix'.format(k.replace('_','-'))
+        fileType = get_file_type(v, s3=s3)
+        if fileType == FileType.FILE:
+            hyperparameters[key] = os.path.basename(v)
+        elif fileType == FileType.FOLDER:
+            if key in hyperparameters:
+                del hyperparameters[key]
+        else:
+            raise ValueError()
+    print("Hyperparameters: {}".format(hyperparameters))
 
     estimator = PyTorch(
         sagemaker_session=session,
@@ -86,12 +105,6 @@ def sagemaker_training_run(
         max_wait=args.sagemaker_max_wait if args.sagemaker_spot_instances else None,
         max_run=args.sagemaker_max_run
     )
-
-    channels = config.inputs
-    channels = {k: getattr(args, k) for k in channels.keys()}
-    channels = standardize_channels(channels=channels)
-    channels = upload_local_channels(
-        channels=channels, session=session, prefix=input_prefix)
 
     if args.sagemaker_experiment_name:
         sagemaker_client = session.boto_session.client('sagemaker')
