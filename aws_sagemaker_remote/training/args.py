@@ -193,6 +193,7 @@ def sagemaker_training_args(
     max_wait : int, optional
         Maximum time to wait for a spot instance in seconds.
     """
+    config = SageMakerTrainingConfig(inputs=inputs, dependencies=dependencies)
     if enable_sagemaker:
         sagemaker_profile_args(parser=parser, profile=profile)
         bool_argument(parser, '--sagemaker-run', default=run,
@@ -257,7 +258,7 @@ def sagemaker_training_args(
             default=max_wait,
             help='Maximum time to wait for spot instances in seconds.')
         sagemaker_training_dependency_args(
-            parser=parser, dependencies=dependencies)
+            parser=parser, dependencies=config.dependencies)
     sagemaker_training_model_args(parser=parser, model_dir=model_dir)
     sagemaker_training_output_args(parser=parser, output_dir=output_dir)
     sagemaker_training_checkpoint_args(
@@ -272,7 +273,7 @@ def sagemaker_training_args(
             parser.add_argument(*args, **kwargs)
     if argparse_callback:
         argparse_callback(parser)
-    return SageMakerTrainingConfig(inputs=inputs, dependencies=dependencies)
+    return config
 
 
 def sagemaker_training_output_args(parser: argparse.ArgumentParser, output_dir):

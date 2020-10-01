@@ -5,7 +5,9 @@ from torch import nn
 from torch.utils import data
 from torchvision import datasets
 import torchvision.transforms as transforms
+import aws_sagemaker_remote
 import os
+
 
 class Model(nn.Module):
     def __init__(self):
@@ -67,12 +69,12 @@ def main(args):
 
 def argparse_callback(parser):
     parser.add_argument(
-        '--learning-rate', 
+        '--learning-rate',
         default=1e-3,
         type=float,
         help='Learning rate')
     parser.add_argument(
-        '--epochs', 
+        '--epochs',
         default=5,
         type=int,
         help='Epochs to train')
@@ -86,7 +88,7 @@ if __name__ == '__main__':
             'input': 'output/data'
         },
         dependencies={
-            'aws_sagemaker_remote': os.path.abspath(os.path.join(__file__,'../../aws_sagemaker_remote'))
+            'aws_sagemaker_remote': aws_sagemaker_remote
         },
         argparse_callback=argparse_callback
     )
