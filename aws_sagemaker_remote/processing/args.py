@@ -317,7 +317,7 @@ def sagemaker_processing_args(
     )
     sagemaker_processing_module_args(
         parser=parser,
-        dependencies=dependencies,
+        dependencies=config.dependencies,
         module_mount=module_mount
     )
     for args, kwargs in additional_arguments:

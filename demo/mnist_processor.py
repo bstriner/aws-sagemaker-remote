@@ -6,7 +6,7 @@ from torch.utils import data
 from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
 from aws_sagemaker_remote.processing import sagemaker_processing_main
-
+import aws_sagemaker_remote
 
 def main(args):
     # Main function runs locally or remotely
@@ -34,7 +34,7 @@ if __name__ == '__main__':
         dependencies={
             # Add a module to SageMaker
             # module name: module path
-            'aws_sagemaker_remote': os.path.join(__file__, '../../aws_sagemaker_remote')
+            'aws_sagemaker_remote': aws_sagemaker_remote
         },
         configuration_command='pip3 install --upgrade sagemaker sagemaker-experiments',
         # Name the job
