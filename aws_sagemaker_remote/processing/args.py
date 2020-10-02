@@ -291,7 +291,7 @@ def sagemaker_processing_args(
                         help='Base job name for SageMaker processing .'
                         'Job name will be generated from the base name and a timestamp '
                         '(default: [{}])'.format(base_job_name))
-    parser.add_argument('--sagemaker-runtime-seconds', default=runtime_seconds,
+    parser.add_argument('--sagemaker-runtime-seconds', default=runtime_seconds, type=int,
                         help='SageMaker maximum runtime in seconds (default: [{}])'.format(runtime_seconds))
     parser.add_argument('--sagemaker-role', default=role,
                         help='AWS role for SageMaker execution (default: [{}])'.format(role))
