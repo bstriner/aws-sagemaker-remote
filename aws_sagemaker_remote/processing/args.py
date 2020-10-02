@@ -149,7 +149,8 @@ def sagemaker_processing_args(
     configuration_script=None,
     configuration_command=None,
     additional_arguments=None,
-    argparse_callback=None
+    argparse_callback=None,
+    output_json=None
 ):
     r"""
     Configure ``argparse.ArgumentParser`` for processing scripts.
@@ -260,6 +261,9 @@ def sagemaker_processing_args(
     argparse_callback: function, optional
         Function accepting one argument ``parser:argparse.ArgumentParser`` that adds additional arguments.
         Use to add additional arguments to the script.
+    output_json: str, optional
+        Write SageMaker training details to this path.
+        Set default for ``--sagemaker-output-json``
     """
     config = SageMakerProcessingConfig(
         dependencies=dependencies,
@@ -305,6 +309,8 @@ def sagemaker_processing_args(
                         help='AWS SageMaker instance to run processing (default: [{}])'.format(instance))
     parser.add_argument('--sagemaker-volume-size', default=volume_size, type=int,
                         help='AWS SageMaker volume size in GB (default: [{}])'.format(volume_size))
+    parser.add_argument('--sagemaker-output-json', default=output_json, type=str,
+                        help='Write SageMaker training details to JSON file (default: [{}])'.format(output_json))
     sagemaker_processing_input_args(
         parser=parser,
         inputs=config.inputs,

@@ -8,6 +8,9 @@ try:
     from sagemaker.processing import ScriptProcessor, ProcessingInput, ProcessingOutput
 except:
     pass
+import json
+
+import datetime
 
 from ..session import sagemaker_session
 from .iam import ensure_processing_role
@@ -33,7 +36,7 @@ def sagemaker_processing_run(args, config):
             local=getattr(args, k),
             optional=v.optional,
             mode=getattr(args, "{}_mode".format(k) or v.mode or 'File')
-         ) for k, v in config.inputs.items()
+        ) for k, v in config.inputs.items()
     }
     for k, v in inputs.items():
         if (not v.local) and (not v.optional):
@@ -47,16 +50,16 @@ def sagemaker_processing_run(args, config):
             remote=getattr(args, "{}_s3".format(k)),
             optional=v.optional,
             mode=getattr(args, "{}_mode".format(k) or v.mode or 'EndOfJob')
-        ) for k,v in config.outputs.items()
+        ) for k, v in config.outputs.items()
     }
-    #for k, v in outputs.items():
+    # for k, v in outputs.items():
     #    if (not v) and (not config.outputs[k].optional):
     #        raise ValueError(
     #            "Value required for output agument [{}_s3]".format(k))
-    #outputs = {
+    # outputs = {
     #    k: v for k, v in outputs.items() if v
-    #}
-    #todo: optional arguments
+    # }
+    # todo: optional arguments
     dependencies = {
         k: getattr(args, k) for k in config.dependencies.keys()
     }
@@ -86,13 +89,15 @@ def sagemaker_processing_run(args, config):
         configuration_script=args.sagemaker_configuration_script,
         configuration_command=args.sagemaker_configuration_command,
         wait=args.sagemaker_wait,
-        tags=tags
+        tags=tags,
+        output_json=args.sagemaker_output_json
     )
 
 
 def make_arguments(args, config: SageMakerProcessingConfig):
     vargs = vars(args)
-    to_del = ['sagemaker_run','sagemaker_job_name']  # , 'sagemaker_role', 'sagemaker_profile']
+    # , 'sagemaker_role', 'sagemaker_profile']
+    to_del = ['sagemaker_run', 'sagemaker_job_name']
     to_del.extend(config.inputs.keys())
     to_del.extend(config.outputs.keys())
     to_del.extend("{}_s3" for k in config.outputs.keys())
@@ -163,6 +168,13 @@ def make_processing_input(mount, name, source, s3, mode=None):
     return processing_input, path_argument
 
 
+def json_converter(o):
+    if isinstance(o, datetime.datetime):
+        return o.isoformat()  # __str__()
+    else:
+        raise ValueError("unknown: {}".format(o))
+
+
 def process(
     session: SagemakerSession,
     role,
@@ -187,7 +199,8 @@ def process(
     wait=True,
     logs=True,
     arguments=None,
-    tags=None
+    tags=None,
+    output_json=None
 ):
     iam = session.boto_session.client('iam')
     role = ensure_processing_role(iam=iam, role_name=role)
@@ -306,7 +319,7 @@ def process(
         if not ((not dest.remote) or dest.remote == 'default' or dest.remote.startswith('s3://')):
             raise ValueError("Argument [{}] must be either `default` or an S3 url (`s3://...`). Value given was [{}].".format(
                 variable_to_argparse("{}_s3".format(name)), dest.remote))
-        source="{}/{}".format(output_mount, name)
+        source = "{}/{}".format(output_mount, name)
         if dest.mode:
             assert dest.mode in ['EndOfJob', 'Continuous']
         processing_outputs.append(
@@ -317,7 +330,7 @@ def process(
                 s3_upload_mode=dest.mode or 'EndOfJob'
             ))
         path_arguments[name] = source
-            
+
     ensure_eol(PROCESSING_SCRIPT)
     code = Path(PROCESSING_SCRIPT).as_uri()
     if job_name is None or len(str(job_name).strip()) == 0:
@@ -330,9 +343,20 @@ def process(
         code=code,
         inputs=processing_inputs,
         outputs=processing_outputs,
-        wait=wait,
+        wait=False,
         logs=logs,
         job_name=job_name,
         arguments=sagemaker_arguments(vargs=arguments)
     )
+    job = processor.latest_job
+    if output_json:
+        obj = job.describe()
+        print("Describe: {}".format(obj))
+        os.makedirs(os.path.dirname(
+            os.path.abspath(output_json)), exist_ok=True)
+        with open(output_json, 'w') as f:
+            json.dump(obj, f, default=json_converter, indent=4)
+
+    if wait:
+        job.wait(logs=logs)
     return processor
