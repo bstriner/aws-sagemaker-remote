@@ -83,6 +83,9 @@ def sagemaker_training_run(
             raise ValueError()
     print("Hyperparameters: {}".format(hyperparameters))
 
+    if not channels:
+        channels = None
+
     estimator = PyTorch(
         sagemaker_session=session,
         base_job_name=args.sagemaker_base_job_name,
