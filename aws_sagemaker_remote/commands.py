@@ -17,7 +17,7 @@ def run_command(command: Command, description=None):
     parser = ArgumentParser(description=description or command.help)
     command.configure(parser)
     args = parser.parse_args()
-    command.run(args)
+    return command.run(args)
 
 
 def commands_parser(
@@ -33,7 +33,8 @@ def commands_parser(
         title='command',
         dest=dest,
         help='Command to execute',
-        required=True)
+        #required=True todo: py 3.7 only
+    )
     for k, command in commands.items():
         parser_command = parser_commands.add_parser(
             name=k, help=command.help
@@ -47,16 +48,19 @@ def handle_commands(commands, args):
     vargs = vars(args)
     del vargs['command']
     args = Namespace(**vargs)
-    command.run(args)
+    return command.run(args)
 
 
-def run_commands(commands, description=None, argv=None):
+def run_commands(commands, description=None, argv=None,dry_run=False):
     parser = commands_parser(
         commands=commands,
         description=description
     )
-    args = parser.parse_args(args=argv)
-    handle_commands(
-        commands=commands,
-        args=args
-    )
+    if dry_run:
+        return parser
+    else:
+        args = parser.parse_args(args=argv)
+        return handle_commands(
+            commands=commands,
+            args=args
+        )

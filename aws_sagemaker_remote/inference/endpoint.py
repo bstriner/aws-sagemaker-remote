@@ -38,6 +38,7 @@ def endpoint_create(config, name, client, force):
         if force:
             print("Deleting existing endpoint")
             endpoint_delete(name=name, client=client)
+            #todo: need to wait for delete to complete
         else:
             raise click.UsageError(
                 'Specify force to overwrite existing endpoint')
