@@ -87,6 +87,18 @@ def endpoint_invoke(model_dir, name, model, variant, input, output, input_type, 
         output_data = response['Body']
         if output:
             os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
+            """
+            if isinstance(result[0], str):
+                mode = 'w'
+            elif isinstance(result[0], bytes):
+                mode='wb'
+            else:
+                raise ValueError("Unknown result type: {}".format(type(result[0])))
+            with open(output, mode) as f:
+                for chunk in result:
+                    f.write(chunk)
+            """
+
             with open(output, 'wb') as f:
                 shutil.copyfileobj(output_data, f)
             print("Saved to {}".format(output))

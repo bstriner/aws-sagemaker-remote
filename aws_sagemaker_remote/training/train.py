@@ -15,6 +15,9 @@ def sagemaker_training_run(
     config: SageMakerTrainingConfig,
     metrics=None
 ):
+    if os.getenv('SM_TRAINING_ENV', None):
+        warnings.warn(
+            "Trying to start a SageMaker container from a SageMaker container. Possible loop detected.")
     if metrics is None:
         metrics = {}
     session = sagemaker_session(

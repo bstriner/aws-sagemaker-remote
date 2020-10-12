@@ -90,7 +90,8 @@ def sagemaker_processing_run(args, config):
         configuration_command=args.sagemaker_configuration_command,
         wait=args.sagemaker_wait,
         tags=tags,
-        output_json=args.sagemaker_output_json
+        output_json=args.sagemaker_output_json,
+        env=config.env
     )
 
 
@@ -200,7 +201,8 @@ def process(
     logs=True,
     arguments=None,
     tags=None,
-    output_json=None
+    output_json=None,
+    env=None
 ):
     iam = session.boto_session.client('iam')
     role = ensure_processing_role(iam=iam, role_name=role)
@@ -258,11 +260,15 @@ def process(
             # s3_compression_type='None'
         )
     )
-    env = {
+    if env:
+        env = env.copy()
+    else:
+        env = {}
+    env.update({
         "AWS_SAGEMAKER_REMOTE_MODULE_MOUNT": module_mount,
         "AWS_SAGEMAKER_REMOTE_PYTHON": python,
         "AWS_SAGEMAKER_REMOTE_SCRIPT": script_remote
-    }
+    })
 
     if requirements:
         requirements_remote = "{}/requirements_txt/{}".format(

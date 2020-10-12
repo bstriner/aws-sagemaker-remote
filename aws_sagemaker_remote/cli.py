@@ -1,11 +1,16 @@
 import click
 from aws_sagemaker_remote.util.training import training_describe
+from aws_sagemaker_remote.util.processing import processing_describe
 from aws_sagemaker_remote.inference.model import model_create, model_delete, model_describe
 from aws_sagemaker_remote.inference.endpoint import endpoint_create, endpoint_delete, endpoint_describe, endpoint_invoke
 from aws_sagemaker_remote.inference.endpoint_config import endpoint_config_create, endpoint_config_delete, endpoint_config_describe
 import sagemaker
 import boto3
 from aws_sagemaker_remote.util.upload import upload
+import logging
+
+logging.getLogger('boto3').setLevel(logging.CRITICAL)
+logging.getLogger('botocore').setLevel(logging.CRITICAL)
 
 current_profile = None
 
@@ -25,6 +30,35 @@ def upload_cli(src, dst, gz):
     session = boto3.Session(profile_name=current_profile)
     session = sagemaker.Session(session)
     upload(src=src, dst=dst, gz=gz, session=session)
+
+
+@cli.group()
+def processing():
+    pass
+    
+@processing.command(name='describe')
+@click.argument(
+    'name'
+)
+@click.argument(
+    'field',
+    required=False)
+def processing_describe_cli(name, field):
+    """
+    Describe training job NAME. 
+
+    * Print full JSON if FIELD is not specified.
+
+    * Print only FIELD if specified (e.g., ModelArtifacts.S3ModelArtifacts or LastModifiedTime).
+    """
+    session = boto3.Session(profile_name=current_profile)
+    client = session.client('sagemaker')
+    description = processing_describe(
+        job_name=name,
+        field=field,
+        client=client
+    )
+    print(description)
 
 
 @cli.group()

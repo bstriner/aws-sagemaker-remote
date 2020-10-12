@@ -4,6 +4,8 @@ import os
 from ..args import variable_to_argparse, bool_argument, sagemaker_profile_args, PROFILE
 from .config import SageMakerTrainingConfig
 import json
+import inspect
+import types
 
 CHANNEL_HELP = """Input channel [{channel}].
 Set to local path and it will be uploaded to S3 and downloaded to SageMaker.
@@ -66,14 +68,14 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
         if model_dir:
             kwargs['model_dir'] = model_dir
             print("SageMaker model_dir: [{}]".format(model_dir))
-        job_name = data.get('job_name',None)
+        job_name = data.get('job_name', None)
         if job_name:
             kwargs['sagemaker_job_name'] = job_name
             print("SageMaker job_name: [{}]".format(job_name))
         kwargs['sagemaker_run'] = False
-        kwargs['is_sagemaker']=True
+        kwargs['is_sagemaker'] = True
     else:
-        kwargs['is_sagemaker']=False
+        kwargs['is_sagemaker'] = False
     new_args = argparse.Namespace(
         **kwargs
     )
@@ -196,66 +198,71 @@ def sagemaker_training_args(
     max_wait : int, optional
         Maximum time to wait for a spot instance in seconds.
     """
+    if isinstance(script, types.FunctionType):
+        script = inspect.getfile(script)
     config = SageMakerTrainingConfig(inputs=inputs, dependencies=dependencies)
     if enable_sagemaker:
-        sagemaker_profile_args(parser=parser, profile=profile)
-        bool_argument(parser, '--sagemaker-run', default=run,
+        group = parser.add_argument_group(
+            title='SageMaker', description='SageMaker options'
+        )
+        sagemaker_profile_args(parser=group, profile=profile)
+        bool_argument(group, '--sagemaker-run', default=run,
                       help="Run training on SageMaker (yes/no default={})".format(run))
-        bool_argument(parser, '--sagemaker-wait', default=wait,
+        bool_argument(group, '--sagemaker-wait', default=wait,
                       help="Wait for SageMaker training to complete and tail logs files (yes/no default={})".format(wait))
-        bool_argument(parser, '--sagemaker-spot-instances', default=spot_instances,
+        bool_argument(group, '--sagemaker-spot-instances', default=spot_instances,
                       help="Use spot instances for training (yes/no default={})".format(spot_instances))
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-script',
             default=script,
             help='Script to run on SageMaker. (default: [{}])'.format(script))
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-source',
             default=source,
             help='Source to upload to SageMaker. '
             'Must contain script. '
             'If blank, default to directory containing script. '
             '(default: [{}])'.format(source))
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-training-instance',
             default=training_instance,
             help='Instance type for training')
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-training-image',
             default=training_image,
             help='Docker image for training')
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-training-role',
             default=training_role,
             help='Docker image for training')
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-base-job-name',
             default=base_job_name,
             help='Base job name for tracking and organization on S3.'
             ' A job name will be generated from the base job name unless a job name is specified.')
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-job-name',
             default=job_name,
             help='Job name for tracking. Use --base-job-name instead and a job name will be automatically generated with a timestamp.')
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-experiment-name',
             default=experiment_name,
             help='Name of experiment in SageMaker tracking.')
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-trial-name',
             default=trial_name,
             help='Name of experiment trial in SageMaker tracking.')
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-volume-size',
             type=int,
             default=volume_size,
             help='Volume size in GB.')
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-max-run',
             type=int,
             default=max_run,
             help='Maximum runtime in seconds.')
-        parser.add_argument(
+        group.add_argument(
             '--sagemaker-max-wait',
             type=int,
             default=max_wait,
@@ -289,39 +296,53 @@ def sagemaker_training_output_args(parser: argparse.ArgumentParser, output_dir):
 def sagemaker_training_checkpoint_args(
         parser: argparse.ArgumentParser, checkpoint_dir,
         checkpoint_s3='default', checkpoint_container=CHECKPOINT_LOCAL_PATH, enable_sagemaker=True):
-    parser.add_argument('--checkpoint-dir', type=str,
-                        default=checkpoint_dir,
-                        help='Local directory to store checkpoints for resuming training (default: "{}")'.format(checkpoint_dir))
+
+    group = parser.add_argument_group(
+        title='Checkpoints',
+        description='Checkpointing options'
+    )
+    group.add_argument('--checkpoint-dir', type=str,
+                       default=checkpoint_dir,
+                       help='Local directory to store checkpoints for resuming training (default: "{}")'.format(checkpoint_dir))
     if enable_sagemaker:
-        parser.add_argument('--sagemaker-checkpoint-s3', type=str,
-                            default=checkpoint_s3,
-                            help='Location to store checkpoints on S3 or "default" (default: "{}")'.format(checkpoint_s3))
-        parser.add_argument('--sagemaker-checkpoint-container', type=str,
-                            default=checkpoint_container,
-                            help='Location to store checkpoints on container (default: "{}")'.format(checkpoint_container))
+        group.add_argument('--sagemaker-checkpoint-s3', type=str,
+                           default=checkpoint_s3,
+                           help='Location to store checkpoints on S3 or "default" (default: "{}")'.format(checkpoint_s3))
+        group.add_argument('--sagemaker-checkpoint-container', type=str,
+                           default=checkpoint_container,
+                           help='Location to store checkpoints on container (default: "{}")'.format(checkpoint_container))
 
 
 def sagemaker_training_dependency_args(parser: argparse.ArgumentParser, dependencies):
     if dependencies:
+        group = parser.add_argument_group(
+            title='Dependencies',
+            description='Dependencies to upload to SageMaker'
+        )
         for k, v in dependencies.items():
             flag = variable_to_argparse(k)
-            parser.add_argument(flag, type=str,
-                                default=k,
-                                help='Directory for dependency [{}] (default: "{}")'.format(k, v))
+            group.add_argument(flag, type=str,
+                               default=k,
+                               help='Directory for dependency [{}] (default: "{}")'.format(k, v))
 
 
 def sagemaker_training_channel_args(parser: argparse.ArgumentParser, inputs):
     if inputs:
+        group = parser.add_argument_group(
+            title='Inputs',
+            description='Inputs (local or S3)'
+        )
         for channel, default in inputs.items():
             flag = variable_to_argparse(channel)
             env_key = 'SM_CHANNEL_{}'.format(channel.upper())
             if env_key in os.environ:
                 default = os.environ[env_key]
-            parser.add_argument(
+            group.add_argument(
                 flag, type=str,  default=default,
                 help=CHANNEL_HELP.format(channel=channel, default=default))
             suffix_flag = variable_to_argparse("{}_suffix".format(channel))
-            parser.add_argument(suffix_flag, help=argparse.SUPPRESS, default="", type=str)
+            group.add_argument(
+                suffix_flag, help=argparse.SUPPRESS, default="", type=str)
 
 
 def sagemaker_training_model_args(parser: argparse.ArgumentParser,
