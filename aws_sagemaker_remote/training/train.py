@@ -88,6 +88,7 @@ def sagemaker_training_run(
 
     if not channels:
         channels = None
+    #env = config.env
 
     estimator = PyTorch(
         sagemaker_session=session,

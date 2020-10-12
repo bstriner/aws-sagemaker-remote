@@ -35,16 +35,25 @@ def sagemaker_env_args(config):
     return args
 """
 
+def sagemaker_env_arg():
+    """
+    Check for ``SM_TRAINING_ENV`` environment variable and return object if it exists
+    """
+    sm_env = os.getenv('SM_TRAINING_ENV', None)
+    if sm_env:
+        data = json.loads(sm_env)
+        return data
+    else:
+        return None
 
 def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig):
     """
     Check for ``SM_TRAINING_ENV`` environment variable and use it to override arguments.
     """
-    sm_env = os.getenv('SM_TRAINING_ENV', None)
     kwargs = vars(args)
-    if sm_env:
+    data = sagemaker_env_arg()
+    if data:
         print("Detected SageMaker environment")
-        data = json.loads(sm_env)
         ci = data.get('channel_input_dirs', None)
         if ci:
             for k in config.inputs.keys():
@@ -111,7 +120,8 @@ def sagemaker_training_args(
     spot_instances=False,
     volume_size=30,
     max_run=60*60*12,
-    max_wait=60*60*24
+    max_wait=60*60*24,
+    env=None
 ):
     r"""
     Configure ``argparse.ArgumentParser`` for training scripts.
@@ -200,7 +210,7 @@ def sagemaker_training_args(
     """
     if isinstance(script, types.FunctionType):
         script = inspect.getfile(script)
-    config = SageMakerTrainingConfig(inputs=inputs, dependencies=dependencies)
+    config = SageMakerTrainingConfig(inputs=inputs, dependencies=dependencies, env=env)
     if enable_sagemaker:
         group = parser.add_argument_group(
             title='SageMaker', description='SageMaker options'
