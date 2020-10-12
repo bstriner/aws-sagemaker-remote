@@ -10,6 +10,7 @@ from ..git import git_get_tags
 from ..tags import make_tags
 from ..s3 import get_file_type, FileType
 
+
 def sagemaker_training_run(
     args,
     config: SageMakerTrainingConfig,
@@ -59,23 +60,28 @@ def sagemaker_training_run(
     hyperparameters['sagemaker-run'] = 'False'
     if args.sagemaker_checkpoint_s3 and args.sagemaker_checkpoint_s3 != 'default':
         if not args.sagemaker_checkpoint_s3.startswith('s3://'):
-            raise ValueError("--sagemaker-checkpoint-s3 must be an S3 URI (s3://...) or \"default\"")
+            raise ValueError(
+                "--sagemaker-checkpoint-s3 must be an S3 URI (s3://...) or \"default\"")
         checkpoint_s3 = args.sagemaker_checkpoint_s3
     else:
-        checkpoint_s3 =  "s3://{}/{}/checkpoints".format(bucket, job_name)
+        checkpoint_s3 = "s3://{}/{}/checkpoints".format(bucket, job_name)
     hyperparameters['checkpoint-dir'] = args.sagemaker_checkpoint_container
     if 'sagemaker-job-name' in hyperparameters:
         del hyperparameters['sagemaker-job-name']
 
     channels = config.inputs
     channels = {k: getattr(args, k) for k in channels.keys()}
+    channels = {k: v for k, v in channels.items() if v} # and config.inputs[k].required == False}
+    #for k,v in channels.items():
+    #    if not v:
+    #        raise ValueError("Channel [{}] is empty and required".format(k))
     channels = standardize_channels(channels=channels)
     channels = upload_local_channels(
         channels=channels, session=session, prefix=input_prefix)
 
     s3 = session.boto_session.client('s3')
-    for k,v in channels.items():
-        key = '{}-suffix'.format(k.replace('_','-'))
+    for k, v in channels.items():
+        key = '{}-suffix'.format(k.replace('_', '-'))
         fileType = get_file_type(v, s3=s3)
         if fileType == FileType.FILE:
             hyperparameters[key] = os.path.basename(v)
