@@ -1,7 +1,9 @@
 import multiprocessing
 import traceback
 
+
 def wrap_worker(fn, *args):
+    semaphore.release()
     try:
         fn(*args)
     except Exception as e:
@@ -10,21 +12,28 @@ def wrap_worker(fn, *args):
         raise e
 
 
-def run_workers(workers, fn, data, *args, expand=False):
+def init_child(semaphore_):
+    global semaphore
+    semaphore = semaphore_
+
+
+def run_workers(workers, fn, data, *args, expand=False, queue_size=100):
+    assert workers > 0
     if workers > 1:
-        with multiprocessing.Pool(workers) as pool:
-            tasks = [
-                (
+        assert queue_size > 0
+        sem = multiprocessing.Semaphore(queue_size)
+        with multiprocessing.Pool(workers, initializer=init_child, initargs=(sem,)) as pool:
+            for datum in data:
+                sem.acquire()
+                if expand:
                     pool.apply_async(wrap_worker, (fn, *datum, *args))
-                    if expand else
+                else:
                     pool.apply_async(wrap_worker, (fn, datum, *args))
-                )
-                for datum in data
-            ]
-            tasks = [task.get() for task in tasks]
+            pool.close()
+            pool.join()
     else:
-        tasks = [
-            fn(datum, *args)
-            for datum in data
-        ]
-    return tasks
+        for datum in data:
+            if expand:
+                fn(*datum, *args)
+            else:
+                fn(datum, *args)

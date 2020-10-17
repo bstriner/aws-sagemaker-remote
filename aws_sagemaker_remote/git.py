@@ -3,10 +3,11 @@ import subprocess
 import os
 import warnings
 import re
+import traceback
 
 def git_warn(name, e):
     warnings.warn("Cannot git_get_{}".format(name))
-    warnings.warn(e)
+    #traceback.print_exc()
 
 def git_get_branch(file):
     cwd = os.path.dirname(os.path.abspath(file))
@@ -82,4 +83,9 @@ if __name__ == '__main__':
     pprint(tags)
     from aws_sagemaker_remote.tags import make_tags
     tags = make_tags(tags)
+    pprint(tags)
+
+    tags = git_get_tags(r"C:\Projects\split-audio\setup.py")
+    
+    print("Audio")
     pprint(tags)
