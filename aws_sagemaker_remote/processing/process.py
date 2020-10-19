@@ -267,7 +267,8 @@ def process(
     env.update({
         "AWS_SAGEMAKER_REMOTE_MODULE_MOUNT": module_mount,
         "AWS_SAGEMAKER_REMOTE_PYTHON": python,
-        "AWS_SAGEMAKER_REMOTE_SCRIPT": script_remote
+        "AWS_SAGEMAKER_REMOTE_SCRIPT": script_remote,
+        "IS_SAGEMAKER": "1"
     })
 
     if requirements:

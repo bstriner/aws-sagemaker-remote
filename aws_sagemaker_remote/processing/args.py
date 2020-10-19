@@ -61,6 +61,8 @@ Set to Continuous or EndOfJob.
 (default: [{v}])
 """
 
+def is_sagemaker():
+    return os.getenv("IS_SAGEMAKER", False)
 
 def sagemaker_processing_input_args(parser: argparse.ArgumentParser, inputs=None,
                                     input_mount=INPUT_MOUNT):

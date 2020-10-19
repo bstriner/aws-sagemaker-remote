@@ -8,7 +8,8 @@ import torchvision.transforms as transforms
 from aws_sagemaker_remote.training import sagemaker_training_main
 import aws_sagemaker_remote
 from aws_sagemaker_remote.args import PathArgument
-
+import stat
+import pathlib
 
 def show_path(path):
     if path.startswith('s3://'):
@@ -16,6 +17,7 @@ def show_path(path):
     else:
         if os.path.exists(path):
             print("Path [{}] exists".format(path))
+            st_mode = pathlib.Path(path).stat().st_mode
             if os.path.isdir(path):
                 print("Directory contents: {}".format(
                     list(os.listdir(path))
@@ -24,6 +26,11 @@ def show_path(path):
                 with open(path) as f:
                     contents = f.read()
                 print("File contents: [{}]".format(contents))
+            elif stat.S_ISFIFO(st_mode):
+                print("Path is fifo")
+                with open(path) as f:
+                    contents = f.read()
+                print("Fifo contents: [{}]".format(contents))
             else:
                 print("Path [{}] is not file or folder".format(path))
         else:
@@ -41,9 +48,17 @@ def main(args):
     print("Test S3 file: {}".format(args.test_s3_file))
     show_path(args.test_s3_file)
     print("Test S3 folder pipe: {}".format(args.test_s3_folder_pipe))
-    show_path(args.test_s3_folder)
+    show_path(args.test_s3_folder_pipe)
+    print("Test S3 folder pipe manifest: {}-manifest".format(args.test_s3_folder_pipe))
+    show_path("{}-manifest".format(args.test_s3_folder_pipe))
+    print("Test S3 folder pipe 0: {}_0".format(args.test_s3_folder_pipe))
+    show_path("{}_0".format(args.test_s3_folder_pipe))
     print("Test S3 file pipe: {}".format(args.test_s3_file_pipe))
-    show_path(args.test_s3_file)
+    show_path(args.test_s3_file_pipe)
+    print("Test S3 file pipe manifest: {}-manifest".format(args.test_s3_file_pipe))
+    show_path("{}-manifest".format(args.test_s3_file_pipe))
+    print("Test S3 file pipe 0: {}_0".format(args.test_s3_file_pipe))
+    show_path("{}_0".format(args.test_s3_file_pipe))
     print("Input path: {}".format(os.path.dirname(args.test_folder)))
     show_path(os.path.dirname(args.test_folder))
 
@@ -56,8 +71,8 @@ if __name__ == '__main__':
             'test_file': 'demo/test_folder/test_file.txt',
             'test_s3_folder': 's3://sagemaker-us-east-1-683880991063/test_folder',
             'test_s3_file': 's3://sagemaker-us-east-1-683880991063/test_folder/test_file.txt',
-            'test_s3_folder_pipe': PathArgument('s3://sagemaker-us-east-1-683880991063/test_folder', mode='Pipe'),
-            'test_s3_file_pipe': PathArgument('s3://sagemaker-us-east-1-683880991063/test_folder/test_file.txt', mode='Pipe')
+            'test_s3_folder_pipe': PathArgument('demo/test_folder', mode='Pipe'),
+            'test_s3_file_pipe': PathArgument('demo/test_folder/test_file.txt', mode='Pipe')
         },
         dependencies={
             # Add a module to SageMaker

@@ -38,6 +38,11 @@ def sagemaker_env_args(config):
     return args
 """
 
+
+def is_sagemaker():
+    return sagemaker_env_arg()
+
+
 def sagemaker_env_arg():
     """
     Check for ``SM_TRAINING_ENV`` environment variable and return object if it exists
@@ -48,6 +53,7 @@ def sagemaker_env_arg():
         return data
     else:
         return None
+
 
 def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig):
     """
@@ -63,7 +69,8 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
                 v = ci.get(k, None)
                 if v:
                     suffix = kwargs.get('{}_suffix'.format(k), None)
-                    if suffix:
+                    if suffix and os.path.exists(v):
+                        # todo: handle file pipes
                         v = os.path.join(v, suffix)
                     print("SageMaker input [{}]: [{}]".format(k, v))
                     kwargs[k] = v
@@ -213,7 +220,8 @@ def sagemaker_training_args(
     """
     if isinstance(script, types.FunctionType):
         script = inspect.getfile(script)
-    config = SageMakerTrainingConfig(inputs=inputs, dependencies=dependencies, env=env)
+    config = SageMakerTrainingConfig(
+        inputs=inputs, dependencies=dependencies, env=env)
     if enable_sagemaker:
         group = parser.add_argument_group(
             title='SageMaker', description='SageMaker options'
@@ -347,10 +355,10 @@ def sagemaker_training_channel_args(parser: argparse.ArgumentParser, inputs):
         )
         for channel, default in inputs.items():
             flag = variable_to_argparse(channel)
-            #todo: check opts
+            # todo: check opts
             #env_key = 'SM_CHANNEL_{}'.format(channel.upper())
             #local = default.local
-            #if env_key in os.environ:
+            # if env_key in os.environ:
             #    local = os.environ[env_key]
             group.add_argument(
                 flag, type=str,  default=default.local,
