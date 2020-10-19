@@ -12,6 +12,9 @@ Set to local path and it will be uploaded to S3 and downloaded to SageMaker.
 Set to S3 path and it will be downloaded to SageMaker.
 (default: [{default}])
 """
+CHANNEL_HELP_MODE = """Input channel [{channel}] mode.
+(default: [{default}])
+"""
 TRAINING_IMAGE = '683880991063.dkr.ecr.us-east-1.amazonaws.com/columbo-sagemaker-training:latest'
 TRAINING_INSTANCE = 'ml.m5.large'
 TRAINING_ROLE = 'aws-sagemaker-remote-training-role'
@@ -287,7 +290,7 @@ def sagemaker_training_args(
         checkpoint_s3=checkpoint_s3,
         checkpoint_container=checkpoint_container,
         enable_sagemaker=enable_sagemaker)
-    sagemaker_training_channel_args(parser=parser, inputs=inputs)
+    sagemaker_training_channel_args(parser=parser, inputs=config.inputs)
     if additional_arguments:
         for args, kwargs in additional_arguments:
             parser.add_argument(*args, **kwargs)
@@ -344,12 +347,18 @@ def sagemaker_training_channel_args(parser: argparse.ArgumentParser, inputs):
         )
         for channel, default in inputs.items():
             flag = variable_to_argparse(channel)
-            env_key = 'SM_CHANNEL_{}'.format(channel.upper())
-            if env_key in os.environ:
-                default = os.environ[env_key]
+            #todo: check opts
+            #env_key = 'SM_CHANNEL_{}'.format(channel.upper())
+            #local = default.local
+            #if env_key in os.environ:
+            #    local = os.environ[env_key]
             group.add_argument(
-                flag, type=str,  default=default,
-                help=CHANNEL_HELP.format(channel=channel, default=default))
+                flag, type=str,  default=default.local,
+                help=CHANNEL_HELP.format(channel=channel, default=default.local))
+            mode_flag = variable_to_argparse("{}_mode".format(channel))
+            group.add_argument(
+                mode_flag, type=str,  default=default.mode or "File",
+                help=CHANNEL_HELP_MODE.format(channel=channel, default=default.mode or "File"))
             suffix_flag = variable_to_argparse("{}_suffix".format(channel))
             group.add_argument(
                 suffix_flag, help=argparse.SUPPRESS, default="", type=str)

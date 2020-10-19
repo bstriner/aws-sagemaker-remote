@@ -3,7 +3,7 @@ import os
 with open(os.path.abspath(os.path.join(__file__, '../README.rst')), encoding='utf-8') as f:
     long_description = f.read()
 setup(name='aws-sagemaker-remote',
-      version='0.0.38',
+      version='0.0.39',
       author='Ben Striner',
       author_email="bstriner@gmail.com",
       url='https://github.com/bstriner/aws-sagemaker-remote',

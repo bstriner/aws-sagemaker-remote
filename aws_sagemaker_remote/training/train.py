@@ -9,6 +9,8 @@ from .experiment import ensure_experiment
 from ..git import git_get_tags
 from ..tags import make_tags
 from ..s3 import get_file_type, FileType
+from sagemaker.inputs import TrainingInput
+import warnings
 
 
 def sagemaker_training_run(
@@ -71,8 +73,9 @@ def sagemaker_training_run(
 
     channels = config.inputs
     channels = {k: getattr(args, k) for k in channels.keys()}
-    channels = {k: v for k, v in channels.items() if v} # and config.inputs[k].required == False}
-    #for k,v in channels.items():
+    # and config.inputs[k].required == False}
+    channels = {k: v for k, v in channels.items() if v}
+    # for k,v in channels.items():
     #    if not v:
     #        raise ValueError("Channel [{}] is empty and required".format(k))
     channels = standardize_channels(channels=channels)
@@ -90,6 +93,21 @@ def sagemaker_training_run(
                 del hyperparameters[key]
         else:
             raise ValueError()
+    
+    channels = {
+        k: TrainingInput(
+            s3_data=v,
+            # distribution=None,
+            # compression=None,
+            # content_type=None,
+            # record_wrapping=None,
+            # s3_data_type="S3Prefix",
+            input_mode=getattr(args, "{}_mode".format(k)) or "File"
+            # attribute_names=None,
+            # target_attribute_name=None,
+            # shuffle_config=None,
+        ) for k, v in channels.items()
+    }
     print("Hyperparameters: {}".format(hyperparameters))
 
     if not channels:
