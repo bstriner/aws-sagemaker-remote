@@ -66,16 +66,25 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
         ci = data.get('channel_input_dirs', None)
         if ci:
             for k in config.inputs.keys():
-                v = ci.get(k, None)
-                if v:
-                    suffix = kwargs.get('{}_suffix'.format(k), None)
-                    if suffix and os.path.exists(v):
-                        # todo: handle file pipes
-                        v = os.path.join(v, suffix)
-                    print("SageMaker input [{}]: [{}]".format(k, v))
+                mode = kwargs["{}_mode".format(k)]
+                if mode in ['ManifestFolder','AugmentedManifestFolder']:
+                    v = {}
+                    for ik, iv in ci.items():
+                        if ik.startswith("{}_".format(k)):
+                            v[ik[len(k)+1:]]=iv
+                            kwargs[ik] = iv
                     kwargs[k] = v
                 else:
-                    kwargs[k] = None
+                    v = ci.get(k, None)
+                    if v:
+                        suffix = kwargs.get('{}_suffix'.format(k), None)
+                        if suffix and os.path.exists(v):
+                            # todo: handle file pipes
+                            v = os.path.join(v, suffix)
+                        print("SageMaker input [{}]: [{}]".format(k, v))
+                        kwargs[k] = v
+                    else:
+                        kwargs[k] = None
         else:
             for k in config.inputs.keys():
                 kwargs[k] = None

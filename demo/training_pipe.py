@@ -18,34 +18,6 @@ from sagemaker.amazon.record_pb2 import Record
 from sagemaker.amazon.common import read_recordio
 
 
-def show_path(path):
-    if not path:
-        print("Empty")
-    elif path.startswith('s3://'):
-        print("Path [{}] is on s3".format(path))
-    else:
-        if os.path.exists(path):
-            print("Path [{}] exists".format(path))
-            st_mode = pathlib.Path(path).stat().st_mode
-            if os.path.isdir(path):
-                print("Directory contents: {}".format(
-                    list(os.listdir(path))
-                ))
-            elif os.path.isfile(path):
-                with open(path) as f:
-                    contents = f.read()
-                print("File contents: [{}]".format(contents))
-            elif stat.S_ISFIFO(st_mode):
-                print("Path is fifo")
-                with open(path) as f:
-                    contents = f.read()
-                print("Fifo contents: [{}]".format(contents))
-            else:
-                print("Path [{}] is not file or folder".format(path))
-        else:
-            print("Path [{}] does not exist".format(path))
-
-
 def read_pipe(pipe):
     for i in range(5):
         with open(pipe+"_{}".format(i), 'rb') as f:
@@ -62,6 +34,20 @@ def read_pipe(pipe):
 def main(args):
     # Main function runs locally or remotely
     print("Test folder: {}".format(args.test_pipe))
+    import glob
+    print("Glob: {}".format(list(glob.glob(os.path.join(
+        os.path.dirname(args.test_pipe), "**","*"), recursive=True))))
+    if isinstance(args.test_pipe, dict):
+        for k, v in args.test_pipe.items():
+            print("Pipe dict entry {}".format(k))
+            read_pipe(v)
+    elif isinstance(args.test_pipe, str):
+        print("Pipe {}".format(k))
+        read_pipe(args.test_pipe)
+    else:
+        raise ValueError("Input should be string or dictionary")
+
+    """
     show_path(args.test_pipe)
     print("Test S3 file pipe manifest: {}-manifest".format(args.test_pipe))
     show_path("{}-manifest".format(args.test_pipe))
@@ -69,6 +55,7 @@ def main(args):
     show_path(os.path.dirname(args.test_pipe))
     print("Test S3 file pipe 0: {}_0".format(args.test_pipe))
     read_pipe(args.test_pipe)
+    """
 
 
 if __name__ == '__main__':
@@ -76,9 +63,9 @@ if __name__ == '__main__':
         main=main,  # main function for local execution
         inputs={
             'test_pipe': PathArgument(
-                'demo/test_folder/manifest-audio.json',
-                mode='PipeAugmentedManifest',
-                attributes=['label', 'audio1-ref', 'audio2-ref']
+                'output/manifest-speakers/manifest-speakers',
+                mode='AugmentedManifestFolder',
+                attributes=['label', 'audio-1-ref', 'audio-2-ref']
             )
         },
         dependencies={
@@ -88,12 +75,13 @@ if __name__ == '__main__':
         },
         #configuration_command='pip3 install --upgrade sagemaker sagemaker-experiments',
         # Name the job
-        base_job_name='demo-training-pipe'
+        base_job_name='demo-training-pipe',
+        volume_size=20
     )
 
 """
 split-lines --input demo/test_folder/manifest-speakers.json --output output/manifest-speakers --splits 2 --size 2
 
 aws s3 sync demo/test_folder s3://sagemaker-us-east-1-683880991063/test_folder
-python demo\training_inputs.py --sagemaker-run yes
+python demo\training_pipe.py --sagemaker-run yes --sagemaker-training-instance ml.m5.large
 """

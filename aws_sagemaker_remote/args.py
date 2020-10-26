@@ -52,6 +52,10 @@ def get_s3_data_type(mode):
         return 'ManifestFile'
     elif mode == 'AugmentedManifestFile':
         return 'AugmentedManifestFile'
+    elif mode == 'ManifestFolder':
+        return 'ManifestFile'
+    elif mode == 'AugmentedManifestFolder':
+        return 'AugmentedManifestFile'
     elif mode in ['File', 'EndOfJob', 'Continuous', 'Pipe']:
         return 'S3Prefix'
     else:

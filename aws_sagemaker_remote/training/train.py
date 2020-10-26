@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 from ..util.pipes import chunk_iterable
 from sagemaker.s3 import S3Uploader
 
+
 def sagemaker_training_run(
     args,
     config: SageMakerTrainingConfig,
@@ -100,84 +101,64 @@ def sagemaker_training_run(
 
     chs = {}
     for k, v in channels.items():
+        mode = getattr(args, "{}_mode".format(k))
         if (
-            config.inputs[k].split_workers and
-            config.inputs[k].split_batch_size and
-            hasattr(args, config.inputs[k].split_workers) and
-            getattr(args, config.inputs[k].split_workers) > 1 and
-            (
-                isinstance(config.inputs[k].split_batch_size, int) or
-                hasattr(args, config.inputs[k].split_batch_size)
-            ) and
-            get_s3_data_type(getattr(args, "{}_mode".format(k))) in [
+            mode in [
                 'AugmentedManifestFolder',
                 'ManifestFolder'
             ]
         ):
-            split_workers = getattr(args, config.inputs[k].split_workers)
-            split_batch_size = config.inputs[k].split_batch_size
-            if not isinstance(split_batch_size, int):
-                split_batch_size = getattr(args, split_batch_size)
-            with tempfile.TemporaryDirectory() as tmp:
-                #tmp = os.path.join(tmp, '{}-manifests'.format(k))
-                #os.makedirs(tmp, exist_ok=True)
-                s3=session.boto_session.client('s3')
-                url = urlparse(v)
-                assert url.scheme == 's3'
-                bucket = url.netloc
-                key = url.path.lstrip('/')
-                manifest = os.path.join(tmp,'manifest.json')
-                s3.download_file(bucket, key, manifest)
-                fps = [
-                    open(os.path.join(tmp, 'manifest-{}.json'.format(i)))
-                    for i in split_workers
-                ]
-                try:
-                    for fp in fps:
-                        fp.__enter__()
-                    worker = 0
-                    with open(manifest) as f:
-                        for batch in chunk_iterable(f, size=split_batch_size, last='yield'):
-                            # every datum in batch to same worker
-                            for datum in batch:                               
-                                fps[worker].write(datum)
-                            worker = (worker+1)%len(fps)
-                finally:
-                    for fp in fps:
-                        fp.__exit__()
-                manifests_uri = "{}/{}-manifests".format(input_prefix,k)
-                S3Uploader.upload(
-            local_path=tmp,
-            desired_s3_uri=manifests_uri,
-            sagemaker_session=session
-        )
-            mode = getattr(args, "{}_mode".format(k))
-            for worker in range(split_workers):
-                chs["{}-{}".format(k, worker)] = TrainingInput(
-                    s3_data="{}/manifest-{}.json".format(manifests_uri, worker),
+            uri = urlparse(v)
+            assert uri.scheme == 's3'
+            bucket = uri.netloc
+            key = uri.path.lstrip("/").rstrip("/")+"/"
+            manifests = s3.list_objects_v2(
+                Bucket=bucket,
+                # Delimiter='string',
+                # EncodingType='url',
+                # MaxKeys=123,
+                Prefix=key,
+                # ContinuationToken='string',
+                # FetchOwner=True|False,
+                # StartAfter='string',
+                # RequestPayer='requester',
+                # ExpectedBucketOwner='string'
+            )
+            for manifest in manifests['Contents']:
+                mkey = manifest['Key'].lstrip('/')
+                bn,_ = os.path.splitext(os.path.basename(mkey))
+                s3_data="s3://{}/{}".format(bucket, mkey)
+                chs["{}_{}".format(k, bn.replace("-", "_"))] = TrainingInput(
+                    s3_data=s3_data,
                     record_wrapping="RecordIO",
                     s3_data_type=get_s3_data_type(mode),
                     input_mode=get_mode(mode),
                     attribute_names=config.inputs[k].attributes
                 )
-    else:
-        chs[k] = TrainingInput(
-            s3_data=v,
-            # distribution=None,
-            # compression=None,
-            # content_type=None,
-            record_wrapping="RecordIO",
-            s3_data_type=get_s3_data_type(getattr(args, "{}_mode".format(k))),
-            input_mode=get_mode(getattr(args, "{}_mode".format(k))),
-            attribute_names=config.inputs[k].attributes
-            # target_attribute_name=None,
-            # shuffle_config=None,
-        )
+                print("Adding manifest [{}] to input [{}]".format(s3_data, k))
+        elif mode in [
+            'File','Pipe','ManifestFile','AugmentedManifestFile'
+        ]:
+            chs[k] = TrainingInput(
+                s3_data=v,
+                # distribution=None,
+                # compression=None,
+                # content_type=None,
+                record_wrapping="RecordIO" if get_mode(mode) in ['Pipe'] else None,
+                s3_data_type=get_s3_data_type(mode),
+                input_mode=get_mode(mode),
+                attribute_names=config.inputs[k].attributes
+                # target_attribute_name=None,
+                # shuffle_config=None,
+            )
+        else:
+            raise ValueError("Unknown mode: {}->{}".format(k, mode))
     channels = chs
     print("Hyperparameters: {}".format(hyperparameters))
 
     if not channels:
         channels = None
+    print("Channels: {}".format(channels))
     #env = config.env
 
     estimator = PyTorch(
