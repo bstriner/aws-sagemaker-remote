@@ -11,7 +11,11 @@ from ..tags import make_tags
 from ..s3 import get_file_type, FileType
 from sagemaker.inputs import TrainingInput
 import warnings
-
+from ..args import get_mode, get_s3_data_type
+import tempfile
+from urllib.parse import urlparse
+from ..util.pipes import chunk_iterable
+from sagemaker.s3 import S3Uploader
 
 def sagemaker_training_run(
     args,
@@ -93,21 +97,83 @@ def sagemaker_training_run(
                 del hyperparameters[key]
         else:
             raise ValueError()
-    
-    channels = {
-        k: TrainingInput(
+
+    chs = {}
+    for k, v in channels.items():
+        if (
+            config.inputs[k].split_workers and
+            config.inputs[k].split_batch_size and
+            hasattr(args, config.inputs[k].split_workers) and
+            getattr(args, config.inputs[k].split_workers) > 1 and
+            (
+                isinstance(config.inputs[k].split_batch_size, int) or
+                hasattr(args, config.inputs[k].split_batch_size)
+            ) and
+            get_s3_data_type(getattr(args, "{}_mode".format(k))) in [
+                'AugmentedManifestFolder',
+                'ManifestFolder'
+            ]
+        ):
+            split_workers = getattr(args, config.inputs[k].split_workers)
+            split_batch_size = config.inputs[k].split_batch_size
+            if not isinstance(split_batch_size, int):
+                split_batch_size = getattr(args, split_batch_size)
+            with tempfile.TemporaryDirectory() as tmp:
+                #tmp = os.path.join(tmp, '{}-manifests'.format(k))
+                #os.makedirs(tmp, exist_ok=True)
+                s3=session.boto_session.client('s3')
+                url = urlparse(v)
+                assert url.scheme == 's3'
+                bucket = url.netloc
+                key = url.path.lstrip('/')
+                manifest = os.path.join(tmp,'manifest.json')
+                s3.download_file(bucket, key, manifest)
+                fps = [
+                    open(os.path.join(tmp, 'manifest-{}.json'.format(i)))
+                    for i in split_workers
+                ]
+                try:
+                    for fp in fps:
+                        fp.__enter__()
+                    worker = 0
+                    with open(manifest) as f:
+                        for batch in chunk_iterable(f, size=split_batch_size, last='yield'):
+                            # every datum in batch to same worker
+                            for datum in batch:                               
+                                fps[worker].write(datum)
+                            worker = (worker+1)%len(fps)
+                finally:
+                    for fp in fps:
+                        fp.__exit__()
+                manifests_uri = "{}/{}-manifests".format(input_prefix,k)
+                S3Uploader.upload(
+            local_path=tmp,
+            desired_s3_uri=manifests_uri,
+            sagemaker_session=session
+        )
+            mode = getattr(args, "{}_mode".format(k))
+            for worker in range(split_workers):
+                chs["{}-{}".format(k, worker)] = TrainingInput(
+                    s3_data="{}/manifest-{}.json".format(manifests_uri, worker),
+                    record_wrapping="RecordIO",
+                    s3_data_type=get_s3_data_type(mode),
+                    input_mode=get_mode(mode),
+                    attribute_names=config.inputs[k].attributes
+                )
+    else:
+        chs[k] = TrainingInput(
             s3_data=v,
             # distribution=None,
             # compression=None,
             # content_type=None,
-            # record_wrapping=None,
-            # s3_data_type="S3Prefix",
-            input_mode=getattr(args, "{}_mode".format(k)) or "File"
-            # attribute_names=None,
+            record_wrapping="RecordIO",
+            s3_data_type=get_s3_data_type(getattr(args, "{}_mode".format(k))),
+            input_mode=get_mode(getattr(args, "{}_mode".format(k))),
+            attribute_names=config.inputs[k].attributes
             # target_attribute_name=None,
             # shuffle_config=None,
-        ) for k, v in channels.items()
-    }
+        )
+    channels = chs
     print("Hyperparameters: {}".format(hyperparameters))
 
     if not channels:

@@ -21,10 +21,42 @@ def get_local_path(path):
             elif url.scheme in ['s3']:
                 return None
             else:
-                raise ValueError("Unknown scheme or path does not exist: [{}]".format(path))
+                raise ValueError(
+                    "Unknown scheme or path does not exist: [{}]".format(path))
         except:
             pass
         return None
+
+
+def get_mode(mode):
+    if not mode:
+        return 'File'
+    elif mode in [
+        'Pipe',
+        'ManifestFile',
+        'AugmentedManifestFile',
+        'ManifestFolder',
+        'AugmentedManifestFolder'
+    ]:
+        return 'Pipe'
+    elif mode in ['File', 'EndOfJob', 'Continuous']:
+        return mode
+    else:
+        raise ValueError("Unknown mode: {}".format(mode))
+
+
+def get_s3_data_type(mode):
+    if not mode:
+        return 'S3Prefix'
+    elif mode == 'ManifestFile':
+        return 'ManifestFile'
+    elif mode == 'AugmentedManifestFile':
+        return 'AugmentedManifestFile'
+    elif mode in ['File', 'EndOfJob', 'Continuous', 'Pipe']:
+        return 'S3Prefix'
+    else:
+        raise ValueError("Unknown mode: {}".format(mode))
+
 
 class PathArgument(object):
     def __init__(
@@ -32,18 +64,30 @@ class PathArgument(object):
         local=None,
         remote='default',
         optional=False,
-        mode=None
+        mode=None,
+        attributes=None,
+        split_workers='workers',
+        split_batch_size='batch_size',
     ):
         self.local = local
         self.remote = remote or 'default'
         self.optional = optional
         self.mode = mode
+        self.attributes = attributes
+        self.split_workers = split_workers
+        self.split_batch_size = split_batch_size
         if self.mode:
-            assert self.mode in ['Pipe', 'File','EndOfJob', 'Continuous']
-        #if self.optional and self.local:
+            assert self.mode in [
+                'Pipe', 'ManifestFile', 'AugmentedManifestFile',
+                'ManifestFolder', 'AugmentedManifestFolder',
+                'File', 'EndOfJob', 'Continuous'
+            ]
+        # if self.optional and self.local:
         #    print("Optional inputs must default to nothing")
 
+
 OPTIONAL = PathArgument(optional=True)
+
 
 def convert_path_argument(param, cls=PathArgument):
     if isinstance(param, cls):

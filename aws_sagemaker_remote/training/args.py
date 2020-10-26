@@ -131,7 +131,8 @@ def sagemaker_training_args(
     volume_size=30,
     max_run=60*60*12,
     max_wait=60*60*24,
-    env=None
+    env=None,
+    workers=2
 ):
     r"""
     Configure ``argparse.ArgumentParser`` for training scripts.
@@ -217,6 +218,8 @@ def sagemaker_training_args(
         Maximum training time in seconds.
     max_wait : int, optional
         Maximum time to wait for a spot instance in seconds.
+    workers : int, optional
+        Number of workers
     """
     if isinstance(script, types.FunctionType):
         script = inspect.getfile(script)

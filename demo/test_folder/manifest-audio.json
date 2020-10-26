@@ -1,0 +1,2 @@
+{"label":1,"audio1-ref":"s3://sagemaker-us-east-1-683880991063/test_folder/test_subfolder/CantinaBand1.wav","audio2-ref":"s3://sagemaker-us-east-1-683880991063/test_folder/test_subfolder/CantinaBand2.wav"}
+{"label":0,"audio1-ref":"s3://sagemaker-us-east-1-683880991063/test_folder/test_subfolder/CantinaBand2.wav","audio2-ref":"s3://sagemaker-us-east-1-683880991063/test_folder/test_subfolder/CantinaBand2.wav"}

@@ -11,6 +11,10 @@ from aws_sagemaker_remote.args import PathArgument
 import stat
 import pathlib
 
+from sagemaker.amazon.record_pb2 import Record
+from sagemaker.amazon.common import read_recordio
+
+
 def show_path(path):
     if not path:
         print("Empty")
@@ -38,43 +42,37 @@ def show_path(path):
         else:
             print("Path [{}] does not exist".format(path))
 
+def read_pipe(pipe):
+    with open(pipe,'rb') as f:
+        for rec in read_recordio(f):
+            print("read record")
+            print(rec)
+            record = Record()
+            record.ParseFromString(rec)
+            print("record parsed")
+            print(record)
 
 def main(args):
     # Main function runs locally or remotely
-    print("Test folder: {}".format(args.test_folder))
-    show_path(args.test_folder)
-    print("Test file: {}".format(args.test_file))
-    show_path(args.test_file)
-    print("Test S3 folder: {}".format(args.test_s3_folder))
-    show_path(args.test_s3_folder)
-    print("Test S3 file: {}".format(args.test_s3_file))
-    show_path(args.test_s3_file)
-    print("Test S3 folder pipe: {}".format(args.test_s3_folder_pipe))
-    show_path(args.test_s3_folder_pipe)
-    print("Test S3 folder pipe manifest: {}-manifest".format(args.test_s3_folder_pipe))
-    show_path("{}-manifest".format(args.test_s3_folder_pipe))
-    print("Test S3 folder pipe 0: {}_0".format(args.test_s3_folder_pipe))
-    show_path("{}_0".format(args.test_s3_folder_pipe))
-    print("Test S3 file pipe: {}".format(args.test_s3_file_pipe))
-    show_path(args.test_s3_file_pipe)
-    print("Test S3 file pipe manifest: {}-manifest".format(args.test_s3_file_pipe))
-    show_path("{}-manifest".format(args.test_s3_file_pipe))
-    print("Test S3 file pipe 0: {}_0".format(args.test_s3_file_pipe))
-    show_path("{}_0".format(args.test_s3_file_pipe))
-    print("Input path: {}".format(os.path.dirname(args.test_folder)))
-    show_path(os.path.dirname(args.test_folder))
+    print("Test folder: {}".format(args.test_pipe))
+    show_path(args.test_pipe)
+    print("Test S3 file pipe manifest: {}-manifest".format(args.test_pipe))
+    show_path("{}-manifest".format(args.test_pipe))
+    print("Input path: {}".format(os.path.dirname(args.test_pipe)))
+    show_path(os.path.dirname(args.test_pipe))
+    print("Test S3 file pipe 0: {}_0".format(args.test_pipe))
+    read_pipe("{}_0".format(args.test_pipe))
 
 
 if __name__ == '__main__':
     sagemaker_training_main(
         main=main,  # main function for local execution
         inputs={
-            'test_folder': 'demo/test_folder',
-            'test_file': 'demo/test_folder/test_file.txt',
-            'test_s3_folder': 's3://sagemaker-us-east-1-683880991063/test_folder',
-            'test_s3_file': 's3://sagemaker-us-east-1-683880991063/test_folder/test_file.txt',
-            'test_s3_folder_pipe': PathArgument('demo/test_folder', mode='Pipe'),
-            'test_s3_file_pipe': PathArgument('demo/test_folder/test_file.txt', mode='Pipe')
+            'test_pipe': PathArgument(
+                'demo/test_folder/manifest-txt.json',
+                mode='PipeAugmentedManifest',
+                attributes=['audioone-ref']
+            )
         },
         dependencies={
             # Add a module to SageMaker
@@ -83,9 +81,10 @@ if __name__ == '__main__':
         },
         #configuration_command='pip3 install --upgrade sagemaker sagemaker-experiments',
         # Name the job
-        base_job_name='demo-training-inputs'
+        base_job_name='demo-training-pipe'
     )
 
 """
+aws s3 sync demo/test_folder s3://sagemaker-us-east-1-683880991063/test_folder
 python demo\training_inputs.py --sagemaker-run yes
 """
