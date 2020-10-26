@@ -10,7 +10,7 @@ import aws_sagemaker_remote
 from aws_sagemaker_remote.args import PathArgument
 import stat
 import pathlib
-
+import glob
 from scipy.io import wavfile
 from io import BytesIO
 from aws_sagemaker_remote.util.pipes import chunk_iterable
@@ -34,12 +34,12 @@ def read_pipe(pipe):
 def main(args):
     # Main function runs locally or remotely
     print("Test folder: {}".format(args.test_pipe))
-    import glob
-    print("Glob: {}".format(list(glob.glob(os.path.join(
-        os.path.dirname(args.test_pipe), "**","*"), recursive=True))))
     if isinstance(args.test_pipe, dict):
         for k, v in args.test_pipe.items():
-            print("Pipe dict entry {}".format(k))
+            print("Pipe dict entry {}->{}".format(k, v))
+
+            print("Glob: {}".format(list(glob.glob(os.path.join(
+                os.path.dirname(v), "**", "*"), recursive=True))))
             read_pipe(v)
     elif isinstance(args.test_pipe, str):
         print("Pipe {}".format(k))
