@@ -1,5 +1,13 @@
 import sys
+import json
 
+
+def read_jsonlines(path):
+    with open(path) as f:
+        for l in f:
+            l = l.strip()
+            if l:
+                yield json.loads(l)
 
 def chunk_iterable(it, size, last='skip'):
     assert last in ['skip', 'yield', 'error']
