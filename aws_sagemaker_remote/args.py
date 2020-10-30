@@ -70,16 +70,16 @@ class PathArgument(object):
         optional=False,
         mode=None,
         attributes=None,
-        split_workers='workers',
-        split_batch_size='batch_size',
+        repeat=1,
+        shuffle=False
     ):
         self.local = local
         self.remote = remote or 'default'
         self.optional = optional
         self.mode = mode
         self.attributes = attributes
-        self.split_workers = split_workers
-        self.split_batch_size = split_batch_size
+        self.repeat=repeat
+        self.shuffle=shuffle
         if self.mode:
             assert self.mode in [
                 'Pipe', 'ManifestFile', 'AugmentedManifestFile',

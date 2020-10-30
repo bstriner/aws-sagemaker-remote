@@ -22,13 +22,15 @@ def read_pipe(pipe):
     for i in range(5):
         with open(pipe+"_{}".format(i), 'rb') as f:
             print("opened pipe {}".format(i))
+            count = 0
             for label, f1, f2 in chunk_iterable(read_recordio(f), 3):
                 label = int(label.decode('utf-8'))
                 fs1, aud1 = wavfile.read(BytesIO(f1))
                 fs2, aud2 = wavfile.read(BytesIO(f2))
-                print("label: {}".format(label))
+                print("{} label: {}".format(count, label))
                 print("audio1: {},{}".format(fs1, aud1.shape))
                 print("audio2: {},{}".format(fs2, aud2.shape))
+                count += 1
 
 
 def main(args):
@@ -37,12 +39,11 @@ def main(args):
     if isinstance(args.test_pipe, dict):
         for k, v in args.test_pipe.items():
             print("Pipe dict entry {}->{}".format(k, v))
-
             print("Glob: {}".format(list(glob.glob(os.path.join(
                 os.path.dirname(v), "**", "*"), recursive=True))))
             read_pipe(v)
     elif isinstance(args.test_pipe, str):
-        print("Pipe {}".format(k))
+        print("Pipe {}".format(args.test_pipe))
         read_pipe(args.test_pipe)
     else:
         raise ValueError("Input should be string or dictionary")
@@ -81,7 +82,6 @@ if __name__ == '__main__':
 
 """
 split-lines --input demo/test_folder/manifest-speakers.json --output output/manifest-speakers --splits 2 --size 2
-
 aws s3 sync demo/test_folder s3://sagemaker-us-east-1-683880991063/test_folder
 python demo\training_pipe.py --sagemaker-run yes --sagemaker-training-instance ml.m5.large
 """

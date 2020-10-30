@@ -16,6 +16,7 @@ import tempfile
 from urllib.parse import urlparse
 from ..util.pipes import chunk_iterable
 from sagemaker.s3 import S3Uploader
+from sagemaker.inputs import ShuffleConfig
 
 
 def sagemaker_training_run(
@@ -45,6 +46,7 @@ def sagemaker_training_run(
         for k, v in metrics.items()
     ]
     dependencies = [getattr(args, k) for k in config.dependencies.keys()]
+    print("Dependencies: {}".format(dependencies))
 
     # checkpoint_local_path='/opt/ml/checkpoints/'
     bucket = session.default_bucket()
@@ -102,6 +104,8 @@ def sagemaker_training_run(
     chs = {}
     for k, v in channels.items():
         mode = getattr(args, "{}_mode".format(k))
+        shuffle = getattr(args, "{}_shuffle".format(k))
+        repeat = getattr(args, "{}_repeat".format(k))
         if (
             mode in [
                 'AugmentedManifestFolder',
@@ -124,33 +128,62 @@ def sagemaker_training_run(
                 # RequestPayer='requester',
                 # ExpectedBucketOwner='string'
             )
-            for manifest in manifests['Contents']:
+            if 'Contents' not in manifests:
+                raise ValueError("Cannot find contents of bucket [{}] key [{}]".format(
+                    bucket, key))
+            for i, manifest in enumerate(manifests['Contents']):
                 mkey = manifest['Key'].lstrip('/')
-                bn,_ = os.path.splitext(os.path.basename(mkey))
-                s3_data="s3://{}/{}".format(bucket, mkey)
+                bn, _ = os.path.splitext(os.path.basename(mkey))
+                s3_data = "s3://{}/{}".format(bucket, mkey)
                 chs["{}_{}".format(k, bn.replace("-", "_"))] = TrainingInput(
                     s3_data=s3_data,
                     record_wrapping="RecordIO",
+                    content_type='application/x-recordio',
                     s3_data_type=get_s3_data_type(mode),
                     input_mode=get_mode(mode),
-                    attribute_names=config.inputs[k].attributes
+                    attribute_names=config.inputs[k].attributes,
+                    shuffle_config=ShuffleConfig(123+i) if shuffle else None
                 )
                 print("Adding manifest [{}] to input [{}]".format(s3_data, k))
         elif mode in [
-            'File','Pipe','ManifestFile','AugmentedManifestFile'
+            'File', 'Pipe', 'ManifestFile', 'AugmentedManifestFile'
         ]:
-            chs[k] = TrainingInput(
-                s3_data=v,
-                # distribution=None,
-                # compression=None,
-                # content_type=None,
-                record_wrapping="RecordIO" if get_mode(mode) in ['Pipe'] else None,
-                s3_data_type=get_s3_data_type(mode),
-                input_mode=get_mode(mode),
-                attribute_names=config.inputs[k].attributes
-                # target_attribute_name=None,
-                # shuffle_config=None,
-            )
+            if repeat > 1:
+                for i in range(repeat):
+                    chs["{}_repeat_{}".format(k, i)] = TrainingInput(
+                        s3_data=v,
+                        # distribution=None,
+                        # compression=None,
+                        # content_type=None,
+                        record_wrapping="RecordIO" if get_mode(
+                            mode) not in ['File'] else None,
+                        content_type='application/x-recordio' if get_mode(
+                            mode) not in ['File'] else None,
+                        s3_data_type=get_s3_data_type(mode),
+                        input_mode=get_mode(mode),
+                        attribute_names=config.inputs[k].attributes,
+                        shuffle_config=ShuffleConfig(
+                            123+1) if shuffle else None
+                        # target_attribute_name=None,
+                        # shuffle_config=None,
+                    )
+            else:
+                chs[k] = TrainingInput(
+                    s3_data=v,
+                    # distribution=None,
+                    # compression=None,
+                    # content_type=None,
+                    record_wrapping="RecordIO" if get_mode(
+                        mode) not in ['File'] else None,
+                    content_type='application/x-recordio' if get_mode(
+                            mode) not in ['File'] else None,
+                    s3_data_type=get_s3_data_type(mode),
+                    input_mode=get_mode(mode),
+                    attribute_names=config.inputs[k].attributes,
+                    shuffle_config=ShuffleConfig(123) if shuffle else None
+                    # target_attribute_name=None,
+                    # shuffle_config=None,
+                )
         else:
             raise ValueError("Unknown mode: {}->{}".format(k, mode))
     channels = chs
@@ -158,7 +191,9 @@ def sagemaker_training_run(
 
     if not channels:
         channels = None
-    print("Channels: {}".format(channels))
+    print("Channels: {}".format(list(channels.keys())))
+    #import pprint
+    #pprint.pprint({k: v.config for k, v in channels.items()})
     #env = config.env
 
     estimator = PyTorch(

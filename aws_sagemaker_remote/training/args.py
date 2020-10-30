@@ -66,25 +66,22 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
         ci = data.get('channel_input_dirs', None)
         if ci:
             for k in config.inputs.keys():
-                mode = kwargs["{}_mode".format(k)]
-                if mode in ['ManifestFolder','AugmentedManifestFolder']:
+                v = ci.get(k, None)
+                if not v:
                     v = {}
                     for ik, iv in ci.items():
                         if ik.startswith("{}_".format(k)):
                             v[ik[len(k)+1:]]=iv
                             kwargs[ik] = iv
+                    v = v or None
                     kwargs[k] = v
                 else:
-                    v = ci.get(k, None)
-                    if v:
-                        suffix = kwargs.get('{}_suffix'.format(k), None)
-                        if suffix and os.path.exists(v):
-                            # todo: handle file pipes
-                            v = os.path.join(v, suffix)
-                        print("SageMaker input [{}]: [{}]".format(k, v))
-                        kwargs[k] = v
-                    else:
-                        kwargs[k] = None
+                    suffix = kwargs.get('{}_suffix'.format(k), None)
+                    if suffix and os.path.exists(v):
+                        # todo: handle file pipes
+                        v = os.path.join(v, suffix)
+                    print("SageMaker input [{}]: [{}]".format(k, v))
+                    kwargs[k] = v
         else:
             for k in config.inputs.keys():
                 kwargs[k] = None
@@ -355,7 +352,7 @@ def sagemaker_training_dependency_args(parser: argparse.ArgumentParser, dependen
         for k, v in dependencies.items():
             flag = variable_to_argparse(k)
             group.add_argument(flag, type=str,
-                               default=k,
+                               default=v,
                                help='Directory for dependency [{}] (default: "{}")'.format(k, v))
 
 
@@ -382,6 +379,13 @@ def sagemaker_training_channel_args(parser: argparse.ArgumentParser, inputs):
             suffix_flag = variable_to_argparse("{}_suffix".format(channel))
             group.add_argument(
                 suffix_flag, help=argparse.SUPPRESS, default="", type=str)
+            repeat_flag = variable_to_argparse("{}_repeat".format(channel))
+            group.add_argument(
+                repeat_flag, help="Repeat input", default=default.repeat, type=int)
+            shuffle_flag = variable_to_argparse("{}_shuffle".format(channel))
+            bool_argument(
+                parser, shuffle_flag, help='Shuffle inputs', default=default.shuffle
+            )
 
 
 def sagemaker_training_model_args(parser: argparse.ArgumentParser,
