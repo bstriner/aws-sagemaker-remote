@@ -1,6 +1,6 @@
 
 from argparse import ArgumentParser, Namespace
-
+import sys
 
 class Command(object):
     def __init__(self, help=None):
@@ -60,6 +60,10 @@ def run_commands(commands, description=None, argv=None,dry_run=False):
         return parser
     else:
         args = parser.parse_args(args=argv)
+        if(not args.command):
+            print("Command is required", file=sys.stderr)
+            parser.print_usage(sys.stderr)
+            sys.exit(1)
         return handle_commands(
             commands=commands,
             args=args
