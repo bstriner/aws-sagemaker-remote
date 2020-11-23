@@ -12,10 +12,11 @@ import json
 
 import datetime
 
+from aws_sagemaker_remote.ecr.images import Images, ecr_ensure_image
 from ..session import sagemaker_session
 from .iam import ensure_processing_role
 from ..args import variable_to_argparse, get_local_path, PathArgument
-from .args import PROCESSING_INSTANCE, PROCESSING_IMAGE, PROCESSING_JOB_NAME, PROCESSING_RUNTIME_SECONDS, INPUT_MOUNT, OUTPUT_MOUNT, MODULE_MOUNT
+from .args import PROCESSING_INSTANCE, PROCESSING_JOB_NAME, PROCESSING_RUNTIME_SECONDS, INPUT_MOUNT, OUTPUT_MOUNT, MODULE_MOUNT
 from .config import SageMakerProcessingConfig
 from .args import sagemaker_processing_args
 from ..git import git_get_tags
@@ -72,6 +73,8 @@ def sagemaker_processing_run(args, config):
         role=args.sagemaker_role,
         script=script,
         image=args.sagemaker_image,
+        image_path=args.sagemaker_image_path,
+        image_accounts=args.sagemaker_image_accounts,
         instance=args.sagemaker_instance,
         base_job_name=args.sagemaker_base_job_name,
         job_name=args.sagemaker_job_name,
@@ -189,7 +192,9 @@ def process(
     configuration_command=None,
     base_job_name=PROCESSING_JOB_NAME,
     job_name=None,
-    image=PROCESSING_IMAGE,
+    image=Images.PROCESSING.tag,
+    image_path=Images.PROCESSING.path,
+    image_accounts=Images.PROCESSING.accounts.join(","),
     instance=PROCESSING_INSTANCE,
     volume_size=30,
     runtime_seconds=PROCESSING_RUNTIME_SECONDS,
@@ -205,6 +210,13 @@ def process(
     env=None
 ):
     iam = session.boto_session.client('iam')
+
+    image_uri = ecr_ensure_image(
+        path=image_path,
+        tag=image,
+        accounts=image_accounts.split(","),
+        session=session.boto_session
+    )
     role = ensure_processing_role(iam=iam, role_name=role)
     if inputs is None:
         inputs = {}
@@ -306,7 +318,7 @@ def process(
     print("Tags: {}".format(tags))
     processor = ScriptProcessor(
         role,
-        image_uri=image,
+        image_uri=image_uri,
         instance_count=1,
         instance_type=instance,
         command=command,

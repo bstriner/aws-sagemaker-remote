@@ -4,9 +4,9 @@ import os
 from .config import SageMakerProcessingConfig
 from ..args import variable_to_argparse, bool_argument, sagemaker_profile_args, PROFILE
 
+from aws_sagemaker_remote.ecr.images import Images
 
 PROCESSING_ROLE = 'aws-sagemaker-remote-processing-role'
-PROCESSING_IMAGE = '683880991063.dkr.ecr.us-east-1.amazonaws.com/columbo-compute:latest'
 PROCESSING_INSTANCE = 'ml.t3.medium'
 PROCESSING_JOB_NAME = 'processing-job'
 PROCESSING_RUNTIME_SECONDS = 60*60  # 1 hour
@@ -61,8 +61,10 @@ Set to Continuous or EndOfJob.
 (default: [{v}])
 """
 
+
 def is_sagemaker():
     return os.getenv("IS_SAGEMAKER", False)
+
 
 def sagemaker_processing_input_args(parser: argparse.ArgumentParser, inputs=None,
                                     input_mount=INPUT_MOUNT):
@@ -145,7 +147,9 @@ def sagemaker_processing_args(
     wait=True,
     profile=PROFILE,
     role=PROCESSING_ROLE,
-    image=PROCESSING_IMAGE,
+    image=Images.PROCESSING.tag,
+    image_path=Images.PROCESSING.path,
+    image_accounts=Images.PROCESSING.accounts.join(","),
     instance=PROCESSING_INSTANCE,
     inputs=None,
     outputs=None,
@@ -191,6 +195,12 @@ def sagemaker_processing_args(
     image : str, optional
         URI of ECR Docker image to use for processing. 
         Set default for ``--sagemaker-image``.
+    image_path : str, optional
+        Path to build docker if image does not exist. 
+        Set default for ``--sagemaker-image-path``.
+    image_accounts : str, optional
+        Accounts required to build docker image. 
+        Set default for ``--sagemaker-image-accounts``.
     instance : str, optional
         Type of instance to use for processing (e.g., ``ml.t3.medium``). 
         Set default for ``--sagemaker-instance``.
@@ -323,6 +333,10 @@ def sagemaker_processing_args(
                        '(default: [{}])'.format(configuration_command))
     group.add_argument('--sagemaker-image', default=image,
                        help='AWS ECR image URI of Docker image to run SageMaker processing (default: [{}])'.format(image))
+    group.add_argument('--sagemaker-image-path', default=image_path,
+                       help='Path to Dockerfile if image does not exist yet (default: [{}])'.format(image_path))
+    group.add_argument('--sagemaker-image-accounts', default=image_accounts,
+                       help='Accounts required to build Dockerfile (default: [{}])'.format(image_accounts))
     group.add_argument('--sagemaker-instance', default=instance,
                        help='AWS SageMaker instance to run processing (default: [{}])'.format(instance))
     group.add_argument('--sagemaker-volume-size', default=volume_size, type=int,

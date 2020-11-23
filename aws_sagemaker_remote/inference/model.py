@@ -4,6 +4,7 @@ from botocore.exceptions import ClientError
 from aws_sagemaker_remote.util.training import training_describe
 from .iam import ensure_inference_role
 from aws_sagemaker_remote.util.fields import get_field
+from aws_sagemaker_remote.ecr.images import ecr_ensure_image
 
 
 def model_delete(name, client):
@@ -25,10 +26,23 @@ def model_exists(name, client):
 
 
 def model_create(
-    job, model_artifact,
-    name, session:sagemaker.Session, inference_image, role, force,
+    job,
+    model_artifact,
+    name,
+    session: sagemaker.Session,
+    inference_image,
+    inference_image_path,
+    inference_image_accounts,
+    role,
+    force,
     accelerator_type=None
 ):
+    image_uri = ecr_ensure_image(
+        path=inference_image_path,
+        tag=inference_image,
+        accounts=inference_image_accounts.split(","),
+        session=session.boto_session
+    )
     if (job and model_artifact) or (not (job or model_artifact)):
         raise click.UsageError('Specify one of job_name or model_artifact')
     if model_artifact and not name:
@@ -51,9 +65,9 @@ def model_create(
     else:
         if not model_artifact.startswith('s3://'):
             if model_artifact.startswith('/'):
-                model_artifact=model_artifact[1:]
-            bucket=session.default_bucket()
-            model_artifact='s3://{}/{}'.format(bucket, model_artifact)
+                model_artifact = model_artifact[1:]
+            bucket = session.default_bucket()
+            model_artifact = 's3://{}/{}'.format(bucket, model_artifact)
         print("Creating model [{}] from artifact [{}]".format(
             name, model_artifact))
 
@@ -64,7 +78,7 @@ def model_create(
         else:
             raise click.UsageError('Specify force if overwriting model')
     model = sagemaker.Model(
-        image_uri=inference_image,
+        image_uri=image_uri,
         model_data=model_artifact,
         role=role,
         predictor_cls=None,

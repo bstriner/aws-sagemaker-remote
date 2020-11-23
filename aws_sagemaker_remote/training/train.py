@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 from ..util.pipes import chunk_iterable
 from sagemaker.s3 import S3Uploader
 from sagemaker.inputs import ShuffleConfig
+from aws_sagemaker_remote.ecr.images import ecr_ensure_image
 
 
 def sagemaker_training_run(
@@ -27,6 +28,14 @@ def sagemaker_training_run(
     if os.getenv('SM_TRAINING_ENV', None):
         warnings.warn(
             "Trying to start a SageMaker container from a SageMaker container. Possible loop detected.")
+
+    image_uri = ecr_ensure_image(
+        path=args.sagemaker_training_image,
+        tag=args.sagemaker_training_image,
+        accounts=args.sagemaker_training_image.split(","),
+        session=session
+    )
+
     if metrics is None:
         metrics = {}
     session = sagemaker_session(
@@ -203,7 +212,7 @@ def sagemaker_training_run(
         source_dir=source,
         role=training_role,
         instance_type=args.sagemaker_training_instance,
-        image_uri=args.sagemaker_training_image,
+        image_uri=image_uri,
         instance_count=1,
         framework_version='1.5.0',
         # hyperparameters=hyperparameters_from_argparse(vars(args)),

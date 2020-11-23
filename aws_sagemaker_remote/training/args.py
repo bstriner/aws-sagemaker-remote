@@ -15,7 +15,6 @@ Set to S3 path and it will be downloaded to SageMaker.
 CHANNEL_HELP_MODE = """Input channel [{channel}] mode.
 (default: [{default}])
 """
-TRAINING_IMAGE = '683880991063.dkr.ecr.us-east-1.amazonaws.com/columbo-sagemaker-training:latest'
 TRAINING_INSTANCE = 'ml.m5.large'
 TRAINING_ROLE = 'aws-sagemaker-remote-training-role'
 BASE_JOB_NAME = 'training-job'
@@ -108,7 +107,7 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
     #print("Updated args: {}".format(new_args))
     return new_args
 
-
+from aws_sagemaker_remote.ecr.images import Images
 def sagemaker_training_args(
     parser: argparse.ArgumentParser,
     script,
@@ -127,7 +126,9 @@ def sagemaker_training_args(
     checkpoint_dir='output',
     checkpoint_s3='default',
     checkpoint_container=CHECKPOINT_LOCAL_PATH,
-    training_image=TRAINING_IMAGE,
+    training_image=Images.TRAINING.tag,
+    training_image_path=Images.TRAINING.path,
+    training_image_accounts=Images.TRAINING.accounts,
     training_instance=TRAINING_INSTANCE,
     training_role=TRAINING_ROLE,
     enable_sagemaker=True,
@@ -261,6 +262,14 @@ def sagemaker_training_args(
             '--sagemaker-training-image',
             default=training_image,
             help='Docker image for training')
+        group.add_argument(
+            '--sagemaker-training-image-path',
+            default=training_image_path,
+            help='Path to dockerfile if image does not exist')
+        group.add_argument(
+            '--sagemaker-training-image-accounts',
+            default=training_image_accounts,
+            help='Accounts for docker build')
         group.add_argument(
             '--sagemaker-training-role',
             default=training_role,

@@ -8,7 +8,8 @@ import sagemaker
 import boto3
 from aws_sagemaker_remote.util.upload import upload
 import logging
-
+import os
+from aws_sagemaker_remote.ecr.images import Images, ecr_build_image
 logging.getLogger('boto3').setLevel(logging.CRITICAL)
 logging.getLogger('botocore').setLevel(logging.CRITICAL)
 
@@ -35,7 +36,8 @@ def upload_cli(src, dst, gz):
 @cli.group()
 def processing():
     pass
-    
+
+
 @processing.command(name='describe')
 @click.argument(
     'name'
@@ -106,11 +108,15 @@ def model():
 @click.option('--model-artifact', help='Model artifact (S3 URI). Relative path assumes default bucket', type=str, default=None)
 @click.option('--name', help='Model name', type=str, default=None)
 @click.option('--inference-image', help='ECR Docker URI for inference', type=str,
-              default='683880991063.dkr.ecr.us-east-1.amazonaws.com/columbo-sagemaker-inference:latest')
+              default=Images.INFERENCE.tag)
+@click.option('--inference-image-path', help='Path for building image if necessary', type=str,
+              default=Images.INFERENCE.path)
+@click.option('--inference-image-accounts', help='Accounts for building image', type=str,
+              default=Images.INFERENCE.accounts.join(','))
 @click.option('--role', help='SageMaker inference role name', type=str,
               default='aws-sagemaker-remote-inference-role')
 @click.option('--force/--no-force', default=False)
-def model_create_cli(job, model_artifact, name, inference_image, role, force):
+def model_create_cli(job, model_artifact, name, inference_image,inference_image_path,inference_image_accounts, role, force):
     session = boto3.Session(profile_name=current_profile)
     session = sagemaker.Session(session)
     model_create(
@@ -119,6 +125,8 @@ def model_create_cli(job, model_artifact, name, inference_image, role, force):
         name=name,
         session=session,
         inference_image=inference_image,
+        inference_image_path=inference_image_path,
+        inference_image_accounts=inference_image_accounts,
         role=role,
         force=force)
 
@@ -280,6 +288,50 @@ def endpoint_invoke_cli(name, model, variant, input, output, input_type, output_
         runtime_client=runtime_client)
     if result:
         print(result)
+
+
+# ECR CLI
+
+
+@cli.group()
+def ecr():
+    """
+    ECR CLI
+    """
+    pass
+
+
+@ecr.group(name='build')
+def ecr_build():
+    """
+    """
+    pass
+
+
+def ecr_image_build_cli(image):
+    @ecr_build.command(name=image.name)
+    @click.option('--path', type=str, default=image.path)
+    @click.option('--tag', type=str, default=image.tag)
+    @click.option('--account', type=str, default=image.accounts, multiple=True)
+    @click.option('--cache/--no-cache', default=True)
+    @click.option('--pull/--no-pull', default=False)
+    def fn(path, tag, account, cache, pull):
+        """
+        """
+        session = boto3.Session(profile_name=current_profile)
+        ecr_build_image(
+            path=path,
+            tag=tag,
+            accounts=account,
+            cache=cache,
+            pull=pull,
+            session=session)
+    return fn
+
+
+ecr_image_build_cli(Images.INFERENCE)
+ecr_image_build_cli(Images.PROCESSING)
+ecr_image_build_cli(Images.TRAINING)
 
 
 if __name__ == '__main__':
