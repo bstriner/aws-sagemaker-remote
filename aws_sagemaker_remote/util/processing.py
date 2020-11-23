@@ -15,10 +15,7 @@ def processing_describe(job_name, client, field=None):
     return description
 
 
-def processing_describe_get(client, job_name):
-    description = client.describe_processing_job(
-        ProcessingJobName=job_name
-    )
+def processing_json(description):
     description['ProcessingInputs']={
         pi['InputName']: pi
         for pi in 
@@ -31,6 +28,14 @@ def processing_describe_get(client, job_name):
         description['ProcessingOutputConfig'].get('Outputs', {})
     }
     return description
+
+def processing_describe_get(client, job_name):
+    description = client.describe_processing_job(
+        ProcessingJobName=job_name
+    )
+    description=processing_json(description)
+    return description
+
 
 
 if __name__ == '__main__':

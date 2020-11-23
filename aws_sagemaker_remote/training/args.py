@@ -6,6 +6,7 @@ from .config import SageMakerTrainingConfig
 import json
 import inspect
 import types
+from aws_sagemaker_remote.ecr.images import Images
 
 CHANNEL_HELP = """Input channel [{channel}].
 Set to local path and it will be uploaded to S3 and downloaded to SageMaker.
@@ -107,7 +108,6 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
     #print("Updated args: {}".format(new_args))
     return new_args
 
-from aws_sagemaker_remote.ecr.images import Images
 def sagemaker_training_args(
     parser: argparse.ArgumentParser,
     script,
@@ -139,7 +139,8 @@ def sagemaker_training_args(
     max_run=60*60*12,
     max_wait=60*60*24,
     env=None,
-    workers=2
+    workers=2,
+    output_json=None
 ):
     r"""
     Configure ``argparse.ArgumentParser`` for training scripts.
@@ -306,6 +307,12 @@ def sagemaker_training_args(
             type=int,
             default=max_wait,
             help='Maximum time to wait for spot instances in seconds.')
+        group.add_argument(
+            '--sagemaker-output-json',
+            type=str,
+            default=output_json,
+            help='Output job details to JSON file.')
+            
         sagemaker_training_dependency_args(
             parser=parser, dependencies=config.dependencies)
     sagemaker_training_model_args(parser=parser, model_dir=model_dir)

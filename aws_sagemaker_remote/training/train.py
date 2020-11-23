@@ -1,6 +1,8 @@
 from ..session import sagemaker_session
 from .config import SageMakerTrainingConfig
 import os
+from aws_sagemaker_remote.util.json_read import json_urlparse, json_converter
+import json
 from sagemaker.pytorch import PyTorch
 from .channels import standardize_channels, upload_local_channels
 from sagemaker.utils import name_from_base
@@ -29,17 +31,16 @@ def sagemaker_training_run(
         warnings.warn(
             "Trying to start a SageMaker container from a SageMaker container. Possible loop detected.")
 
-    image_uri = ecr_ensure_image(
-        path=args.sagemaker_training_image,
-        tag=args.sagemaker_training_image,
-        accounts=args.sagemaker_training_image.split(","),
-        session=session
-    )
-
     if metrics is None:
         metrics = {}
     session = sagemaker_session(
         profile_name=args.sagemaker_profile
+    )
+    image_uri = ecr_ensure_image(
+        path=args.sagemaker_training_image,
+        tag=args.sagemaker_training_image,
+        accounts=args.sagemaker_training_image.split(","),
+        session=session.boto_session
     )
     script = args.sagemaker_script
     script = os.path.abspath(script)
@@ -89,6 +90,7 @@ def sagemaker_training_run(
 
     channels = config.inputs
     channels = {k: getattr(args, k) for k in channels.keys()}
+    channels = {k: json_urlparse(v) for k, v in channels.items()}
     # and config.inputs[k].required == False}
     channels = {k: v for k, v in channels.items() if v}
     # for k,v in channels.items():
@@ -244,7 +246,18 @@ def sagemaker_training_run(
         experiment_config = None
 
     estimator.fit(channels, job_name=job_name,
-                  wait=args.sagemaker_wait, experiment_config=experiment_config)
+                  wait=False, experiment_config=experiment_config)
+    job = estimator.latest_training_job
+    if args.output_json:
+        obj = job.describe()
+        #print("Describe: {}".format(obj))
+        os.makedirs(os.path.dirname(
+            os.path.abspath(args.output_json)), exist_ok=True)
+        with open(args.output_json, 'w') as f:
+            json.dump(obj, f, default=json_converter, indent=4)
+
+    if args.sagemaker_wait:
+        job.wait(logs=True)  # args.sagemaker_logs)
     # todo:
     # use_spot_instances
     # experiment_config (dict[str, str]): Experiment management configuration.

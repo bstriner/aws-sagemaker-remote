@@ -12,6 +12,7 @@ import json
 
 import datetime
 
+from aws_sagemaker_remote.util.json_read import json_urlparse, json_converter
 from aws_sagemaker_remote.ecr.images import Images, ecr_ensure_image
 from ..session import sagemaker_session
 from .iam import ensure_processing_role
@@ -34,7 +35,7 @@ def sagemaker_processing_run(args, config):
 
     inputs = {
         k: PathArgument(
-            local=getattr(args, k),
+            local=json_urlparse(getattr(args, k)),
             optional=v.optional,
             mode=getattr(args, "{}_mode".format(k) or v.mode or 'File')
         ) for k, v in config.inputs.items()
@@ -47,8 +48,8 @@ def sagemaker_processing_run(args, config):
     }
     outputs = {
         k: PathArgument(
-            local=getattr(args, k),
-            remote=getattr(args, "{}_s3".format(k)),
+            local=json_urlparse(getattr(args, k)),
+            remote=json_urlparse(getattr(args, "{}_s3".format(k))),
             optional=v.optional,
             mode=getattr(args, "{}_mode".format(k) or v.mode or 'EndOfJob')
         ) for k, v in config.outputs.items()
@@ -170,13 +171,6 @@ def make_processing_input(mount, name, source, s3, mode=None):
         else:
             path_argument = destination
     return processing_input, path_argument
-
-
-def json_converter(o):
-    if isinstance(o, datetime.datetime):
-        return o.isoformat()  # __str__()
-    else:
-        raise ValueError("unknown: {}".format(o))
 
 
 def process(
@@ -370,7 +364,7 @@ def process(
     job = processor.latest_job
     if output_json:
         obj = job.describe()
-        print("Describe: {}".format(obj))
+        #print("Describe: {}".format(obj))
         os.makedirs(os.path.dirname(
             os.path.abspath(output_json)), exist_ok=True)
         with open(output_json, 'w') as f:

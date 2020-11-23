@@ -44,7 +44,8 @@ def upload_local_channel(channel, session, s3_uri):
         ))
         return s3_uri
     else:
-        raise ValueError("Unknown scheme: [{}]".format(url.scheme))
+        print("Type {}".format(type(s3_uri)))
+        raise ValueError("Unknown scheme: [{}] (uri: {})".format(url.scheme, s3_uri))
 
 
 def upload_local_channels(channels, session, prefix):

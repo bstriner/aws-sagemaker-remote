@@ -9,6 +9,8 @@ import boto3
 from aws_sagemaker_remote.util.upload import upload
 import logging
 import os
+from aws_sagemaker_remote.util.json_read import json_read
+
 from aws_sagemaker_remote.ecr.images import Images, ecr_build_image
 logging.getLogger('boto3').setLevel(logging.CRITICAL)
 logging.getLogger('botocore').setLevel(logging.CRITICAL)
@@ -21,6 +23,20 @@ current_profile = None
 def cli(profile='default'):
     global current_profile
     current_profile = profile
+
+
+@cli.group(name='json')
+def cli_json():
+    pass
+
+
+@cli_json.command(name='read',help="""Read field [FIELD] from JSON file at [PATH]
+""")
+@click.argument('path')
+@click.argument('field')
+def cli_json_read(path, field):
+    data = json_read(path, field)
+    print(data)
 
 
 @cli.command(name='upload')
@@ -112,11 +128,11 @@ def model():
 @click.option('--inference-image-path', help='Path for building image if necessary', type=str,
               default=Images.INFERENCE.path)
 @click.option('--inference-image-accounts', help='Accounts for building image', type=str,
-              default=",".join(Images.INFERENCE.accounts)
+              default=",".join(Images.INFERENCE.accounts))
 @click.option('--role', help='SageMaker inference role name', type=str,
               default='aws-sagemaker-remote-inference-role')
 @click.option('--force/--no-force', default=False)
-def model_create_cli(job, model_artifact, name, inference_image,inference_image_path,inference_image_accounts, role, force):
+def model_create_cli(job, model_artifact, name, inference_image, inference_image_path, inference_image_accounts, role, force):
     session = boto3.Session(profile_name=current_profile)
     session = sagemaker.Session(session)
     model_create(
