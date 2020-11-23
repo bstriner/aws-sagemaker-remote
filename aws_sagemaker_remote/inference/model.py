@@ -5,6 +5,7 @@ from aws_sagemaker_remote.util.training import training_describe
 from .iam import ensure_inference_role
 from aws_sagemaker_remote.util.fields import get_field
 from aws_sagemaker_remote.ecr.images import ecr_ensure_image
+from aws_sagemaker_remote.util.json_read import json_urlparse
 
 
 def model_delete(name, client):
@@ -37,6 +38,9 @@ def model_create(
     force,
     accelerator_type=None
 ):
+    job = json_urlparse(job)
+    name = json_urlparse(name)
+    model_artifact = json_urlparse(model_artifact)
     image_uri = ecr_ensure_image(
         path=inference_image_path,
         tag=inference_image,

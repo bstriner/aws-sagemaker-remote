@@ -1,9 +1,23 @@
 import json
 from aws_sagemaker_remote.util.fields import get_field
-from aws_sagemaker_remote.util.processing import processing_json
 import os
 from urllib.parse import urlparse
+import datetime
 
+def processing_json(description):
+    description['ProcessingInputs'] = {
+        pi['InputName']: pi
+        for pi in
+        description.get('ProcessingInputs', {})
+    }
+    description['ProcessingOutputConfig'] = description.get(
+        'ProcessingOutputConfig', {})
+    description['ProcessingOutputConfig']['Outputs'] = {
+        po['OutputName']: po
+        for po in
+        description['ProcessingOutputConfig'].get('Outputs', {})
+    }
+    return description
 
 def json_read(path, field):
     with open(path, 'r') as f:
@@ -30,8 +44,8 @@ def json_urlparse(url):
                 raise ValueError(
                     "URL fragment required for JSON inputs [{}]".format(url))
             url = json_read(path, uri.fragment)
-            print("Read value [{}] from [{}]: [{}]".format(
-                uri.fragment, path, url))
+            #print("Read value [{}] from [{}]: [{}]".format(
+            #    uri.fragment, path, url))
     return url
 
 
@@ -43,4 +57,5 @@ def json_converter(o):
 
 
 if __name__ == '__main__':
-    print(json_urlparse('json://output/dataprep.json#ProcessingOutputConfig.Outputs.output.S3Output.S3Uri'))
+    print(json_urlparse(
+        'json://output/dataprep.json#ProcessingOutputConfig.Outputs.output.S3Output.S3Uri'))

@@ -248,12 +248,12 @@ def sagemaker_training_run(
     estimator.fit(channels, job_name=job_name,
                   wait=False, experiment_config=experiment_config)
     job = estimator.latest_training_job
-    if args.output_json:
+    if args.sagemaker_output_json:
         obj = job.describe()
         #print("Describe: {}".format(obj))
         os.makedirs(os.path.dirname(
-            os.path.abspath(args.output_json)), exist_ok=True)
-        with open(args.output_json, 'w') as f:
+            os.path.abspath(args.sagemaker_output_json)), exist_ok=True)
+        with open(args.sagemaker_output_json, 'w') as f:
             json.dump(obj, f, default=json_converter, indent=4)
 
     if args.sagemaker_wait:

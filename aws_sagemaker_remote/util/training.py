@@ -2,9 +2,10 @@ import sagemaker
 
 import pprint
 from aws_sagemaker_remote.util.fields import get_field
-
+from aws_sagemaker_remote.util.json_read import json_urlparse
 
 def training_describe(job_name, client, field=None):
+    job_name = json_urlparse(job_name)
     description = training_describe_get(job_name=job_name, client=client)
     description = get_field(description, field)
     return description
