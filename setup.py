@@ -10,7 +10,8 @@ setup(name='aws-sagemaker-remote',
       install_requires=[
           'sagemaker',
           'sagemaker-experiments',
-          'click'
+          'click',
+          'docker'
       ],
       package_data={'': [
           '**/Dockerfile',
