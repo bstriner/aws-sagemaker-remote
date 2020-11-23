@@ -194,7 +194,7 @@ def process(
     job_name=None,
     image=Images.PROCESSING.tag,
     image_path=Images.PROCESSING.path,
-    image_accounts=Images.PROCESSING.accounts.join(","),
+    image_accounts=",".join(Images.PROCESSING.accounts),
     instance=PROCESSING_INSTANCE,
     volume_size=30,
     runtime_seconds=PROCESSING_RUNTIME_SECONDS,

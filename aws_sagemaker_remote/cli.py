@@ -112,7 +112,7 @@ def model():
 @click.option('--inference-image-path', help='Path for building image if necessary', type=str,
               default=Images.INFERENCE.path)
 @click.option('--inference-image-accounts', help='Accounts for building image', type=str,
-              default=Images.INFERENCE.accounts.join(','))
+              default=",".join(Images.INFERENCE.accounts)
 @click.option('--role', help='SageMaker inference role name', type=str,
               default='aws-sagemaker-remote-inference-role')
 @click.option('--force/--no-force', default=False)
