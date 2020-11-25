@@ -30,7 +30,7 @@ def cli_json():
     pass
 
 
-@cli_json.command(name='read',help="""Read field [FIELD] from JSON file at [PATH]
+@cli_json.command(name='read', help="""Read field [FIELD] from JSON file at [PATH]
 """)
 @click.argument('path')
 @click.argument('field')
@@ -132,7 +132,10 @@ def model():
 @click.option('--role', help='SageMaker inference role name', type=str,
               default='aws-sagemaker-remote-inference-role')
 @click.option('--force/--no-force', default=False)
-def model_create_cli(job, model_artifact, name, inference_image, inference_image_path, inference_image_accounts, role, force):
+@click.option('--multimodel/--singlemodel', default=False, help="SingleModel or MultiModel mode")
+def model_create_cli(
+        job, model_artifact, name, inference_image,
+        inference_image_path, inference_image_accounts, multimodel, role, force):
     session = boto3.Session(profile_name=current_profile)
     session = sagemaker.Session(session)
     model_create(
@@ -144,7 +147,8 @@ def model_create_cli(job, model_artifact, name, inference_image, inference_image
         inference_image_path=inference_image_path,
         inference_image_accounts=inference_image_accounts,
         role=role,
-        force=force)
+        force=force,
+        multimodel=multimodel)
 
 
 @model.command(name='delete')

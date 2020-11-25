@@ -36,6 +36,7 @@ def model_create(
     inference_image_accounts,
     role,
     force,
+    multimodel=False,
     accelerator_type=None
 ):
     job = json_urlparse(job)
@@ -96,7 +97,25 @@ def model_create(
     container_def = sagemaker.container_def(
         model.image_uri,
         model.model_data,
-        model.env)
+        model.env,
+        container_mode='MultiModel' if multimodel else 'SingleModel')
+    """
+    client.create_model(
+    ModelName='string',
+    PrimaryContainer={
+        'ContainerHostname': 'string',
+        'Image': 'string',
+        'ImageConfig': {
+            'RepositoryAccessMode': 'Platform'|'Vpc'
+        },
+        'Mode': 'SingleModel'|'MultiModel',
+        'ModelDataUrl': 'string',
+        'Environment': {
+            'string': 'string'
+        },
+        'ModelPackageName': 'string'
+    },
+    """
 
     # self._ensure_base_name_if_needed(container_def["Image"])
     # self._set_model_name_if_needed()
