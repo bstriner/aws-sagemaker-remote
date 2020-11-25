@@ -18,6 +18,7 @@ setup(name='aws-sagemaker-remote',
           '**/*.sh',
           '**/*.txt',
           '**/*.yaml',
+          '**/*.yml',
           '**/*.bat'
       ]},
       include_package_data=True,

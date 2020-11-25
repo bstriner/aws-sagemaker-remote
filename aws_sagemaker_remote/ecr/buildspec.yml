@@ -1,7 +1,7 @@
 version: 0.2
 
 phases:
-  pre_build:
+  install:
     commands:
       - echo Installing `aws-sagemaker-remote`
       - python setup.py install
