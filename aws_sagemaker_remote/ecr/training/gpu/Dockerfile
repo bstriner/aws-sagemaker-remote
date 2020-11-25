@@ -1,4 +1,4 @@
-#
+# aws-sagemaker-remote ecr build training
 #
 # `aws ecr get-login --no-include-email --registry-ids 763104351884`
 # `aws ecr get-login --no-include-email`
@@ -8,18 +8,20 @@
 ARG REGION=us-east-1
 
 FROM 763104351884.dkr.ecr.${REGION}.amazonaws.com/pytorch-training:1.6.0-gpu-py36-cu101-ubuntu16.04
+#FROM nvidia/cuda:11.1-cudnn8-runtime-ubuntu18.04
 # https://github.com/aws/deep-learning-containers/blob/master/available_images.md
 RUN apt-get update && \
   apt-get install -y libsvm3 sox libsox-dev
-RUN python -m pip install --upgrade pip
 #RUN conda install -y -c mlio -c conda-forge mlio-py libmlio 
 #libmlio-devel libmlio-dbg
-RUN conda install -y -c pytorch pytorch torchvision torchaudio cudatoolkit=10.2
+#RUN conda install -y -c pytorch pytorch torchvision torchaudio cudatoolkit=10.1
+RUN conda install -y -c pytorch torchaudio
+RUN python -m pip install --upgrade pip
 
 #RUN pip install --no-cache-dir --upgrade torch
 #RUN pip install --no-cache-dir --upgrade pandas awscli boto3 multi-model-server sagemaker-training sagemaker pytorch-igniter scipy torchvision matplotlib sagemaker-experiments torchaudio
 
-RUN pip install --no-cache-dir --upgrade pandas awscli boto3 multi-model-server sagemaker-training sagemaker pytorch-igniter scipy scikit-learn matplotlib sagemaker-experiments
+RUN python -m pip install --no-cache-dir --upgrade pandas awscli boto3 multi-model-server sagemaker-training sagemaker pytorch-igniter scipy scikit-learn matplotlib sagemaker-experiments aws-sagemaker-remote
 
 
 #conda config --add channels soumith

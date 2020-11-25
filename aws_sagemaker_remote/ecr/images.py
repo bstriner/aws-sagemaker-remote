@@ -33,10 +33,18 @@ class Images(object):
         ['763104351884']
     )
 
+    TRAINING_GPU = Image(
+        'training:gpu',
+        os.path.abspath(os.path.join(__file__, '../training')),
+        'aws-sagemaker-remote-training:gpu',
+        ['763104351884']
+    )
+
     ALL = [
         INFERENCE,
         PROCESSING,
-        TRAINING
+        TRAINING,
+        TRAINING_GPU
     ]
 
 # Repository management
@@ -153,6 +161,7 @@ def ecr_build_image(
     tag_account, tag_repo, tag_tag = parse_image(tag, account=user_account)
     repo = ecr_ensure_repo(ecr, tag_account, tag_repo, user_account)
     repo_uri = repo['repositoryUri']
+    path = os.path.join(path, tag_tag)
 
     if not accounts:
         accounts = []
@@ -161,7 +170,9 @@ def ecr_build_image(
     client = docker.from_env()
     ecr_login(ecr, client, accounts)
     image_full = "{}:{}".format(repo_uri, tag_tag)
-    print("Building image {}".format(image_full))
+    print("Building image {} (cache: {}, pull:{})".format(
+        image_full,
+        cache, pull))
     client.images.build(
         path=path,
         tag=image_full,
@@ -174,6 +185,8 @@ def ecr_build_image(
     )
     print("Built image {}".format(image_full))
     #repo = "{}.dkr.ecr.{}.amazonaws.com/"
+
+    print("Pushing image {}".format(image_full))
     client.images.push(repo_uri, tag_tag)
     print("Pushed image {}".format(image_full))
     return image_full

@@ -1,0 +1,15 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Installing `aws-sagemaker-remote`
+      - python setup.py install
+  build:
+    commands:
+      - echo ECR build started on `date`
+      - aws-sagemaker-remote ecr build all
+  post_build:
+    commands:
+      - echo ECR build completed on `date`
+      

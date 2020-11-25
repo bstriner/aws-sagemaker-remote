@@ -328,13 +328,29 @@ def ecr_build():
     pass
 
 
+@ecr_build.command(name='all')
+@click.option('--cache/--no-cache', default=True)
+@click.option('--pull/--no-pull', default=True)
+def ecr_build_all(cache, pull):
+    session = boto3.Session(profile_name=current_profile)
+    for image in Images.ALL:
+        print("Building Image {}".format(image.name))
+        ecr_build_image(
+            path=image.path,
+            tag=image.tag,
+            accounts=image.accounts,
+            cache=cache,
+            pull=pull,
+            session=session)
+
+
 def ecr_image_build_cli(image):
     @ecr_build.command(name=image.name)
     @click.option('--path', type=str, default=image.path)
     @click.option('--tag', type=str, default=image.tag)
     @click.option('--account', type=str, default=image.accounts, multiple=True)
     @click.option('--cache/--no-cache', default=True)
-    @click.option('--pull/--no-pull', default=False)
+    @click.option('--pull/--no-pull', default=True)
     def fn(path, tag, account, cache, pull):
         """
         """
@@ -349,9 +365,8 @@ def ecr_image_build_cli(image):
     return fn
 
 
-ecr_image_build_cli(Images.INFERENCE)
-ecr_image_build_cli(Images.PROCESSING)
-ecr_image_build_cli(Images.TRAINING)
+for image in Images.ALL:
+    ecr_image_build_cli(image)
 
 
 if __name__ == '__main__':

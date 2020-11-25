@@ -1,1 +1,0 @@
-# columbo-sagemaker-inference

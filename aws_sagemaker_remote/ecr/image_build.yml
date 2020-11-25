@@ -1,0 +1,64 @@
+Resources:
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: ["sts:AssumeRole"]
+            Effect: Allow
+            Principal:
+              Service: [codebuild.amazonaws.com]
+        Version: "2012-10-17"
+      Path: /
+      Policies:
+        - PolicyName: CodeBuildAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - "logs:*"
+                  - "ec2:CreateNetworkInterface"
+                  - "ec2:DescribeNetworkInterfaces"
+                  - "ec2:DeleteNetworkInterface"
+                  - "ec2:DescribeSubnets"
+                  - "ec2:DescribeSecurityGroups"
+                  - "ec2:DescribeDhcpOptions"
+                  - "ec2:DescribeVpcs"
+                  - "ec2:CreateNetworkInterfacePermission"
+                  - "ecr:*"
+                Effect: Allow
+                Resource: "*"
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      #Name: MyProject
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: NO_ARTIFACTS
+      #  Location: myBucket
+      #  Name: myArtifact
+      #  EncryptionDisabled: true
+      #  OverrideArtifactName: true
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_MEDIUM #BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:4.0
+        # PrivilegedMode must be true if you specify LOCAL_DOCKER_LAYER_CACHE
+        PrivilegedMode: true
+      Source:
+        Type: GITHUB
+        Location: https://github.com/bstriner/aws-sagemaker-remote.git
+        #InsecureSsl: true
+        GitCloneDepth: 1
+        ReportBuildStatus: false
+        BuildSpec: aws_sagemaker_remote/ecr/buildspec.yml
+      TimeoutInMinutes: 360
+      Cache:
+        Type: LOCAL
+        Modes: # You can specify one or more cache mode,
+          - LOCAL_DOCKER_LAYER_CACHE
+Outputs:
+  CodeBuildProject:
+    Value: !Ref CodeBuildProject
+  CodeBuildProjectArn:
+    Value: !GetAtt CodeBuildProject.Arn
