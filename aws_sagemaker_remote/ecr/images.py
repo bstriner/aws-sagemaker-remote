@@ -1,6 +1,13 @@
 import os
-import docker
 import base64
+import warnings
+try:
+    import docker
+except:
+    warnings.warn(
+        "Python `docker` package not installed. \
+        Some aws-sagemaker-remote features may not be available"
+    )
 
 
 class Image(object):
@@ -118,9 +125,13 @@ def ecr_login(ecr, docker_client, accounts):
         ).decode().split(':')
         registry = auth_data['proxyEndpoint']
         # login =
-        docker_client.login(
-            username, password, registry=registry, reauth=True)
-        print("Logged in to ECR {}".format(registry))
+        login = docker_client.login(
+            username, password, registry=registry, reauth=True
+        )
+        status = ""
+        if login and 'Status' in login:
+            status = ": {}".format(login['Status'])
+        print("Logged in to ECR {}{}".format(registry, status))
         #print("un/pw: {}:{}, reg: {}, login: {}".format(username, password, registry, login))
 
 # Image operations

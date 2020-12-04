@@ -1,0 +1,121 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  batchWrapProtobuf
+
+  Sample SAM Template for batchWrapProtobuf
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+#Globals:
+#  Function:
+#    Timeout: 30
+Parameters:
+  BucketArn:
+    Type: String
+#  Bucket:
+#    Type: String
+#  Key:
+#    Type: String
+
+Resources:
+  LambdaFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: "pack/" #!Ref CodeUri
+      #Bucket: !Ref Bucket
+      #Key: !Ref Key
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Policies:
+        - AmazonS3FullAccess
+      Timeout: 30
+  BatchRole:
+    DependsOn: LambdaFunction
+    Type: AWS::IAM::Role
+    Properties: 
+      #RoleName: String
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - batchoperations.s3.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      #Description: String
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+      #MaxSessionDuration: Integer
+      #Path: String
+      #PermissionsBoundary: String
+      Policies: 
+        - 
+          PolicyName: LambdaAccessPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - 
+                Effect: Allow
+                Action: "lambda:InvokeFunction"
+                Resource: 
+                  - !GetAtt LambdaFunction.Arn
+                  - !Join
+                    - ""
+                    -
+                      - !GetAtt LambdaFunction.Arn
+                      - ":*"
+        # - 
+        #   PolicyName: S3AccessPolicy
+        #   PolicyDocument:
+        #     Version: 2012-10-17
+        #     Statement:
+        #       - 
+        #         Effect: Allow
+        #         Action: 
+        #           #"s3:PutObject",
+        #           - "s3:GetObject"
+        #           - "s3:GetObjectVersion"
+        #           - "s3:ListBucket"
+        #         Resource: 
+        #           - !Join
+        #             - ""
+        #             -
+        #               - !Ref BucketArn
+        #               - "/*"
+        #       - 
+        #         Effect: Allow
+        #         Action: 
+        #           #"s3:PutObject",
+        #           - "s3:ListBucket"
+        #         Resource: 
+        #           - !Ref BucketArn
+      #Tags: 
+      #  - Tag
+      #Events:
+      #  HelloWorld:
+      #    Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+      #    Properties:
+      #      Path: /hello
+      #      Method: get
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  LambdaFunction:
+    Description: "Function Name"
+    Value: !Ref LambdaFunction
+  LambdaFunctionArn:
+    Description: "Function ARN"
+    Value: !GetAtt LambdaFunction.Arn
+  LambdaRole:
+    Description: "Function IAM ARN"
+    Value: !Ref LambdaFunctionRole
+  LambdaRoleArn:
+    Description: "Function IAM ARN"
+    Value: !GetAtt LambdaFunctionRole.Arn
+  BatchRole:
+    Value: !Ref BatchRole
+  BatchRoleArn:
+    Value: !GetAtt BatchRole.Arn

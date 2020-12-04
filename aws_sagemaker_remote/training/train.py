@@ -13,7 +13,7 @@ from ..tags import make_tags
 from ..s3 import get_file_type, FileType
 from sagemaker.inputs import TrainingInput
 import warnings
-from ..args import get_mode, get_s3_data_type
+from ..args import get_mode, get_s3_data_type, get_record_wrapping
 import tempfile
 from urllib.parse import urlparse
 from ..util.pipes import chunk_iterable
@@ -90,7 +90,7 @@ def sagemaker_training_run(
 
     channels = config.inputs
     channels = {k: getattr(args, k) for k in channels.keys()}
-    channels = {k: json_urlparse(v) for k, v in channels.items()}
+    channels = {k: json_urlparse(v, session=session) for k, v in channels.items()}
     # and config.inputs[k].required == False}
     channels = {k: v for k, v in channels.items() if v}
     # for k,v in channels.items():
@@ -148,7 +148,7 @@ def sagemaker_training_run(
                 s3_data = "s3://{}/{}".format(bucket, mkey)
                 chs["{}_{}".format(k, bn.replace("-", "_"))] = TrainingInput(
                     s3_data=s3_data,
-                    record_wrapping="RecordIO",
+                    record_wrapping=get_record_wrapping(mode),
                     content_type='application/x-recordio',
                     s3_data_type=get_s3_data_type(mode),
                     input_mode=get_mode(mode),
@@ -166,8 +166,7 @@ def sagemaker_training_run(
                         # distribution=None,
                         # compression=None,
                         # content_type=None,
-                        record_wrapping="RecordIO" if get_mode(
-                            mode) not in ['File'] else None,
+                        record_wrapping=get_record_wrapping(mode),
                         content_type='application/x-recordio' if get_mode(
                             mode) not in ['File'] else None,
                         s3_data_type=get_s3_data_type(mode),
@@ -184,10 +183,9 @@ def sagemaker_training_run(
                     # distribution=None,
                     # compression=None,
                     # content_type=None,
-                    record_wrapping="RecordIO" if get_mode(
-                        mode) not in ['File'] else None,
-                    content_type='application/x-recordio' if get_mode(
-                            mode) not in ['File'] else None,
+                    record_wrapping=get_record_wrapping(mode),
+                    #content_type='application/x-recordio' if get_mode(
+                    #        mode) not in ['File'] else None,
                     s3_data_type=get_s3_data_type(mode),
                     input_mode=get_mode(mode),
                     attribute_names=config.inputs[k].attributes,

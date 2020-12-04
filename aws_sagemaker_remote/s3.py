@@ -2,6 +2,23 @@ import boto3
 from urllib.request import urlparse
 from botocore.exceptions import ClientError
 
+def parse_s3(url):
+    if url:
+        uri = urlparse(url)
+        if uri.scheme != 's3':
+            raise ValueError(f"Expected s3 url got {url}")
+        bucket = uri.hostname
+        key = uri.path
+        if key.startswith("/"):
+            key = key[1:]
+        return {
+            "Bucket": bucket,
+            "Key": key
+        }
+    else:
+        return None
+
+
 class FileType(object):
     FILE = 'File'
     FOLDER = 'Folder'

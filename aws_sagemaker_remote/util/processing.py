@@ -11,8 +11,9 @@ from aws_sagemaker_remote.util.json_read import json_urlparse, processing_json
 # logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
 
-def processing_describe(job_name, client, field=None):
-    job_name = json_urlparse(job_name)
+def processing_describe(job_name, session, field=None):
+    client = session.boto_session.client('sagemaker')
+    job_name = json_urlparse(job_name, session=session)
     description = processing_describe_get(job_name=job_name, client=client)
     description = get_field(description, field)
     return description

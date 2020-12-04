@@ -1,0 +1,13 @@
+{
+    "name": "js-webpack",
+    "version": "1.0.0",
+    "devDependencies": {
+        "eslint": "^7.13.0",
+        "eslint-config-node": "^4.1.0",
+        "eslint-webpack-plugin": "^2.3.0",
+        "webpack": "^5.5.1",
+        "webpack-aws-externals": "^2.0.1",
+        "webpack-cli": "^4.2.0"
+    },
+    "type": "commonjs"
+}

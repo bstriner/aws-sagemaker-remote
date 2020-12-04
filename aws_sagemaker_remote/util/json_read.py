@@ -3,6 +3,9 @@ from aws_sagemaker_remote.util.fields import get_field
 import os
 from urllib.parse import urlparse
 import datetime
+import sagemaker
+import boto3
+
 
 def processing_json(description):
     description['ProcessingInputs'] = {
@@ -19,6 +22,7 @@ def processing_json(description):
     }
     return description
 
+
 def json_read(path, field):
     with open(path, 'r') as f:
         data = json.load(f)
@@ -33,7 +37,7 @@ def urlparse_safe(url):
         return None
 
 
-def json_urlparse(url):
+def json_urlparse(url, session=None):
     if(url):
         uri = urlparse_safe(url)
         if uri and uri.scheme == 'json':
@@ -44,8 +48,22 @@ def json_urlparse(url):
                 raise ValueError(
                     "URL fragment required for JSON inputs [{}]".format(url))
             url = json_read(path, uri.fragment)
-            #print("Read value [{}] from [{}]: [{}]".format(
+            return json_urlparse(url, session=session)
+            # print("Read value [{}] from [{}]: [{}]".format(
             #    uri.fragment, path, url))
+        elif uri and uri.scheme == 'sagemaker':
+            if isinstance(session, boto3.Session):
+                session = sagemaker.Session(boto_session=session)
+            if not isinstance(session, sagemaker.Session):
+                raise ValueError(
+                    "session required for url {}. Expected session to be sagemaker.Session or boto3.Session got {}".format(url, type(session)))
+            path = [uri.netloc, uri.path]
+            path = [p for p in path if p]
+            path = "".join(path)
+            if path.startswith("/"):
+                path = path[1:]
+            # if session:
+            return f"s3://{session.default_bucket()}/{path}"
     return url
 
 

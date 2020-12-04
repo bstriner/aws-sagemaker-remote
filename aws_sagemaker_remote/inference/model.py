@@ -39,9 +39,9 @@ def model_create(
     multimodel=False,
     accelerator_type=None
 ):
-    job = json_urlparse(job)
-    name = json_urlparse(name)
-    model_artifact = json_urlparse(model_artifact)
+    job = json_urlparse(job, session=session)
+    name = json_urlparse(name, session=session)
+    model_artifact = json_urlparse(model_artifact, session=session)
     image_uri = ecr_ensure_image(
         path=inference_image_path,
         tag=inference_image,
@@ -61,7 +61,7 @@ def model_create(
         model_artifact = training_describe(
             job_name=job,
             field='ModelArtifacts.S3ModelArtifacts',
-            client=client
+            session=session
         )
         if not name:
             name = job

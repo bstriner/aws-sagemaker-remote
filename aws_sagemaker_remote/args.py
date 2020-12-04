@@ -36,7 +36,12 @@ def get_mode(mode):
         'ManifestFile',
         'AugmentedManifestFile',
         'ManifestFolder',
-        'AugmentedManifestFolder'
+        'AugmentedManifestFolder',
+        'PipeWrapped',
+        'ManifestFileWrapped',
+        'AugmentedManifestFileWrapped',
+        'ManifestFolderWrapped',
+        'AugmentedManifestFolderWrapped'
     ]:
         return 'Pipe'
     elif mode in ['File', 'EndOfJob', 'Continuous']:
@@ -48,18 +53,43 @@ def get_mode(mode):
 def get_s3_data_type(mode):
     if not mode:
         return 'S3Prefix'
-    elif mode == 'ManifestFile':
+    elif mode.startswith('ManifestFile'):
         return 'ManifestFile'
-    elif mode == 'AugmentedManifestFile':
+    elif mode.startswith('AugmentedManifestFile'):
         return 'AugmentedManifestFile'
-    elif mode == 'ManifestFolder':
+    elif mode.startswith('ManifestFolder'):
         return 'ManifestFile'
-    elif mode == 'AugmentedManifestFolder':
+    elif mode.startswith('AugmentedManifestFolder'):
         return 'AugmentedManifestFile'
-    elif mode in ['File', 'EndOfJob', 'Continuous', 'Pipe']:
+    elif mode in ['File', 'EndOfJob', 'Continuous', 'Pipe', 'PipeWrapped']:
         return 'S3Prefix'
     else:
         raise ValueError("Unknown mode: {}".format(mode))
+
+
+def get_record_wrapping(mode):
+    if not mode:
+        return None
+    elif mode.endswith('Wrapped'):
+        return 'RecordIO'
+    else:
+        return None
+
+
+MODES = [
+    'File',
+    'EndOfJob',
+    'Continuous'
+]
+for m in [
+    'Pipe',
+    'ManifestFile',
+    'AugmentedManifestFile',
+    'ManifestFolder',
+    'AugmentedManifestFolder'
+]:
+    MODES.append(m)
+    MODES.append(f"{m}Wrapped")
 
 
 class PathArgument(object):
@@ -78,14 +108,10 @@ class PathArgument(object):
         self.optional = optional
         self.mode = mode
         self.attributes = attributes
-        self.repeat=repeat
-        self.shuffle=shuffle
+        self.repeat = repeat
+        self.shuffle = shuffle
         if self.mode:
-            assert self.mode in [
-                'Pipe', 'ManifestFile', 'AugmentedManifestFile',
-                'ManifestFolder', 'AugmentedManifestFolder',
-                'File', 'EndOfJob', 'Continuous'
-            ]
+            assert self.mode in MODES
         # if self.optional and self.local:
         #    print("Optional inputs must default to nothing")
 

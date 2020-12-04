@@ -35,7 +35,7 @@ def sagemaker_processing_run(args, config):
 
     inputs = {
         k: PathArgument(
-            local=json_urlparse(getattr(args, k)),
+            local=json_urlparse(getattr(args, k), session=session),
             optional=v.optional,
             mode=getattr(args, "{}_mode".format(k) or v.mode or 'File')
         ) for k, v in config.inputs.items()
@@ -48,8 +48,8 @@ def sagemaker_processing_run(args, config):
     }
     outputs = {
         k: PathArgument(
-            local=json_urlparse(getattr(args, k)),
-            remote=json_urlparse(getattr(args, "{}_s3".format(k))),
+            local=json_urlparse(getattr(args, k), session=session),
+            remote=json_urlparse(getattr(args, "{}_s3".format(k)), session=session),
             optional=v.optional,
             mode=getattr(args, "{}_mode".format(k) or v.mode or 'EndOfJob')
         ) for k, v in config.outputs.items()

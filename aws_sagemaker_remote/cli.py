@@ -70,11 +70,11 @@ def processing_describe_cli(name, field):
     * Print only FIELD if specified (e.g., ModelArtifacts.S3ModelArtifacts or LastModifiedTime).
     """
     session = boto3.Session(profile_name=current_profile)
-    client = session.client('sagemaker')
+    session = sagemaker.Session(session)
     description = processing_describe(
         job_name=name,
         field=field,
-        client=client
+        session=session
     )
     print(description)
 
@@ -100,11 +100,11 @@ def training_describe_cli(name, field):
     * Print only FIELD if specified (e.g., ModelArtifacts.S3ModelArtifacts or LastModifiedTime).
     """
     session = boto3.Session(profile_name=current_profile)
-    client = session.client('sagemaker')
+    session = sagemaker.Session(session)
     description = training_describe(
         job_name=name,
         field=field,
-        client=client
+        session=session
     )
     print(description)
 
