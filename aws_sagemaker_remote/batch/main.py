@@ -6,7 +6,7 @@ import boto3
 from aws_sagemaker_remote.args import bool_argument
 from aws_sagemaker_remote.lamb.lamb import update_function
 from aws_sagemaker_remote.util.cloudformation import get_cloudformation_output
-
+import json
 # todo: command wrapping
 from aws_sagemaker_remote.commands import Command
 
@@ -23,7 +23,12 @@ class BatchConfig(object):
         env_callback=None,
         webpack=True,
         manifest=None,
-        report="sagemaker://aws-sagemaker-remote/batch-reports"
+        report="sagemaker://aws-sagemaker-remote/batch-reports",
+        timeout=30,
+        soft_timeout=20,
+        development=False,
+        extra_files=None,
+        package_json=None
     ):
         self.stack_name = stack_name
         self.code_dir = code_dir
@@ -35,6 +40,11 @@ class BatchConfig(object):
         self.report = report
         # self.role_name=role_name
         self.description = description
+        self.timeout = timeout
+        self.soft_timeout = soft_timeout
+        self.development = development
+        self.extra_files = extra_files
+        self.package_json = package_json
 
 
 class BatchCommand(Command):
@@ -84,6 +94,12 @@ def batch_argparse_callback(
         default=True,
         help='Require confirmation in console to run job'
     )
+    bool_argument(
+        parser,
+        '--development',
+        default=config.development,
+        help='Require confirmation in console to run job'
+    )
     parser.add_argument(
         '--manifest',
         type=str,
@@ -101,6 +117,18 @@ def batch_argparse_callback(
         '--description',
         type=str,
         default=config.description,
+        help='S3 path to store report'
+    )
+    parser.add_argument(
+        '--timeout',
+        type=int,
+        default=config.timeout,
+        help='S3 path to store report'
+    )
+    parser.add_argument(
+        '--soft-timeout',
+        type=int,
+        default=config.soft_timeout,
         help='S3 path to store report'
     )
     # parser.add_argument(
@@ -124,7 +152,10 @@ def batch_run(args, config: BatchConfig):
         stack_name=args.stack_name,
         session=session,
         webpack=config.webpack,
-        deploy=args.deploy
+        deploy=args.deploy,
+        development=args.development,
+        extra_files=config.extra_files,
+        package_json=config.package_json
     )
     function_arn, batch_role_arn = get_cloudformation_output(
         cloudformation=cloudformation,
@@ -138,13 +169,16 @@ def batch_run(args, config: BatchConfig):
     assert batch_role_arn
 
     # Versioned function for this call
-    lambda_env = {}
+    lambda_env = {
+        "SOFT_TIMEOUT": args.soft_timeout
+    }
     if config.env_callback:
         lambda_env.update(config.env_callback(args))
     function_arn = update_function(
         lambda_client=lambda_client,
         function_name=function_arn,
-        env=lambda_env
+        env=lambda_env,
+        timeout=args.timeout
     )
 
     #manifest = args.manifest

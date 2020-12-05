@@ -30,6 +30,5 @@ module.exports = {
   module: {
     strictExportPresence: true,
   },
-  mode: 'production',
-  externals: [awsExternals()]
+  externals: [awsExternals(), 'bindings']
 }

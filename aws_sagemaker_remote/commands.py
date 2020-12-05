@@ -2,6 +2,7 @@
 from argparse import ArgumentParser, Namespace
 import sys
 
+
 class Command(object):
     def __init__(self, help=None):
         self.help = help
@@ -11,6 +12,9 @@ class Command(object):
 
     def run(self, args):
         pass
+
+    def main(self, description=None):
+        return run_command(self, description=description)
 
 
 def run_command(command: Command, description=None):
@@ -33,7 +37,7 @@ def commands_parser(
         title='command',
         dest=dest,
         help='Command to execute',
-        #required=True todo: py 3.7 only
+        # required=True todo: py 3.7 only
     )
     for k, command in commands.items():
         parser_command = parser_commands.add_parser(
@@ -51,7 +55,7 @@ def handle_commands(commands, args):
     return command.run(args)
 
 
-def run_commands(commands, description=None, argv=None,dry_run=False):
+def run_commands(commands, description=None, argv=None, dry_run=False):
     parser = commands_parser(
         commands=commands,
         description=description

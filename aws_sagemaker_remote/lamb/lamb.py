@@ -24,13 +24,13 @@ def lambda_ignore(src, names):
     ]
 
 
-def update_function(lambda_client, function_name, env):
+def update_function(lambda_client, function_name, env, timeout):
     response = lambda_client.update_function_configuration(
         FunctionName=function_name,
         # Role='string',
         # Handler='string',
         # Description='string',
-        # Timeout=123,
+        Timeout=timeout,
         # MemorySize=123,
         # VpcConfig={
         #    'SubnetIds': [

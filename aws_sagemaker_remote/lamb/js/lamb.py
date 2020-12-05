@@ -7,6 +7,7 @@ import sagemaker
 from aws_sagemaker_remote.util.cloudformation import get_cloudformation_output, stack_ready
 from aws_sagemaker_remote.lamb.sam import sam_build, sam_deploy
 import sys
+import json
 
 WEBPACK_CONFIG = os.path.abspath(os.path.join(
     __file__, '../webpack.config.js'
@@ -22,13 +23,20 @@ BUILD_PACKAGE = os.path.abspath(os.path.join(
 ))
 
 
-def ensure_lambda_js(path, stack_name, session, webpack=True, deploy=False):
+def ensure_lambda_js(
+        path, stack_name, session,
+        webpack=True, deploy=False, development=False,
+        extra_files=None, package_json=None):
     cloudformation = session.client('cloudformation')
     if deploy or not stack_ready(cloudformation, stack_name):
-        build_lambda_js(path, stack_name, session, webpack=webpack)
+        build_lambda_js(
+            path, stack_name, session, webpack=webpack,
+            extra_files=extra_files, package_json=package_json)
 
 
-def build_lambda_js(path, stack_name, session, webpack=True):
+def build_lambda_js(
+        path, stack_name, session, webpack=True, development=False,
+        extra_files=None, package_json=None):
     sagemaker_session = sagemaker.Session(boto_session=session)
     bucket = sagemaker_session.default_bucket()
     bucket_arn = f"arn:aws:s3:::{bucket}"
@@ -66,27 +74,63 @@ def build_lambda_js(path, stack_name, session, webpack=True):
                     npx,
                     'webpack',
                     '--config',
-                    WEBPACK_CONFIG
+                    WEBPACK_CONFIG,
+                    '--mode',
+                    ('development' if development else 'production')
                 ],
                 stderr=sys.stderr,
                 cwd=WEBPACK_PATH,
                 env=webpack_env
             )
-            shutil.copyfile(
-                BUILD_PACKAGE,
-                os.path.join(pack_dir, 'package.json')
-            )
+            with open(BUILD_PACKAGE) as f:
+                package = json.load(f)
+                if package_json:
+                    package.update(package_json)
+            with open(os.path.join(pack_dir, 'package.json'), 'w') as f:
+                json.dump(package, f)
         else:
             shutil.copytree(
                 path,
                 pack_dir
             )
+
         # SAM build
         sam_build(
             build_dir=build_dir,
             base_dir=tmp,
             template_file=TEMPLATE_JS
         )
+        if extra_files:
+            for k, v in extra_files.items():
+                assert os.path.exists(os.path.join(
+                    build_dir, 'LambdaFunction'
+                ))
+                target_path = os.path.join(build_dir, 'LambdaFunction', v)
+                if os.path.exists(
+                    target_path
+                ):
+                    os.remove(target_path)
+                source_path = k
+                if not os.path.exists(source_path):
+                    other_path = os.path.join(
+                        path,
+                        k
+                    )
+                    if os.path.exists(
+                        other_path
+                    ):
+                        source_path = other_path
+                if os.path.exists(source_path):
+                    os.makedirs(
+                        os.path.dirname(target_path),
+                        exist_ok=True
+                    )
+                    shutil.copyfile(
+                        source_path,
+                        target_path
+                    )
+                else:
+                    raise ValueError(f"File {source_path} does not exist")
         # SAM deploy
         sam_deploy(
             stack_name=stack_name,
