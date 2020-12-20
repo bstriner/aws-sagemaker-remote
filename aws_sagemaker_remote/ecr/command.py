@@ -35,6 +35,8 @@ class BuildImageCommand(Command):
                       help="Push results to ECR")
         bool_argument(parser, '--cache', default=True,
                       help='Use cached layers during build')
+        bool_argument(parser, '--wsl', default=False,
+                      help='WSL path fix')
         for k, v in self.image.download_files.items():
             flag = "--{}".format(k.replace("_", "-"))
             parser.add_argument(
@@ -60,5 +62,6 @@ class BuildImageCommand(Command):
             session=session,
             pull=args.pull,
             cache=args.cache,
-            push=args.push
+            push=args.push,
+            wsl=args.wsl
         )

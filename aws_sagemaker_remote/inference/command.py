@@ -1,3 +1,4 @@
+import mimetypes
 from aws_sagemaker_remote.commands import Command
 import importlib
 from argparse import ArgumentParser
@@ -26,13 +27,21 @@ class InferenceCommandConfig(object):
 def run_inference_module(
     config: InferenceCommandConfig
 ):
+    input_type = config.input_type
+    if not input_type:
+        input_type, _ = mimetypes.guess_type(config.input)
+
+    output_type = config.output_type
+    if not output_type:
+        output_type = 'application/json'
+
     module = importlib.import_module(config.module)
     model = module.model_fn(config.model_dir)
     with open(config.input, 'rb') as f:
         h = f.read()
-    h = module.input_fn(h, config.input_type)
+    h = module.input_fn(h, input_type)
     h = module.predict_fn(h, model)
-    h, _ = module.output_fn(h, config.output_type)
+    h, _ = module.output_fn(h, output_type)
     write_chunks(
         path=config.output,
         chunks=h

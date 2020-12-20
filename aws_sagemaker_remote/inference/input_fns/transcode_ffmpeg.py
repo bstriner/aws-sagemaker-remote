@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 import subprocess
 
 
-def transcode_ffmpeg(data, input_fmt='wav', sample_rate=None, channels=1):
+def transcode_ffmpeg(data, input_fmt='wav', sample_rate=None, channels=1, codec='pcm_s16le'):
     """
     Transcode binary data in given format to wav file with resampling
 
@@ -22,6 +22,8 @@ def transcode_ffmpeg(data, input_fmt='wav', sample_rate=None, channels=1):
         cmd.extend(['-ar', str(sample_rate)])  # sample rate
     if channels:
         cmd.extend(['-ac', str(channels)])  # channels
+    if codec:
+        cmd.extend(['-acodec', codec])  # pcm_s16le, etc
     cmd.extend([
         '-f', 'wav',  # output format
         'pipe:1'  # output pipe
@@ -29,7 +31,8 @@ def transcode_ffmpeg(data, input_fmt='wav', sample_rate=None, channels=1):
     proc = subprocess.run(
         cmd,
         capture_output=True,
-        input=data
+        input=data,
+        check=True
     )
     fs, data = wavfile.read(BytesIO(proc.stdout))
     return fs, data

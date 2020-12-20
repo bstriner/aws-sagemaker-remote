@@ -57,6 +57,8 @@ def json_input_wrap(request_body, request_content_type):
                 'JSON requests should include an `s3` or `local` key')
     else:
         extension = mimetypes.guess_extension(request_content_type)
-        if extension.startswith("."):
+        if not extension:
+            print(f"Unknown extension for mime `{request_content_type}`")
+        if extension and extension.startswith("."):
             extension = extension[1:]
         return request_body, extension, request_content_type

@@ -69,10 +69,11 @@ def sam_build(
         ])
     #print(" ".join(cmd))
     try:
-        subprocess.check_output(
+        subprocess.run(
             cmd,
             stderr=subprocess.STDOUT,
-            cwd=base_dir
+            cwd=base_dir,
+            check=True
         )
     except Exception as e:
         print("Exception with command [{}]".format(" ".join(cmd)))

@@ -148,7 +148,7 @@ def ecr_login(ecr, docker_client, accounts):
 
 
 def ecr_ensure_image(
-    image, session, force=False, cache=True, pull=True, push=True
+    image, session, force=False, cache=True, pull=True, push=True, wsl=False
 ):
     ecr = session.client('ecr')  # , region_name='eu-west-1')
     user_account = get_account(session)
@@ -166,14 +166,15 @@ def ecr_ensure_image(
         session=session,
         pull=pull,
         cache=cache,
-        push=push
+        push=push,
+        wsl=wsl
     )
 
 
 def download_files(
     files, session, base
 ):
-    #print(f"download_files: {files}")
+    print(f"download_files: {files} to base {base}")
     s3 = session.client('s3')
     ret = {}
     for k, v in files.items():
@@ -192,11 +193,12 @@ def download_files(
             )
         else:
             raise ValueError(f"Unhandled file path {k}: {v}")
+    print(f"downloades_files: {ret}")
     return ret
 
 
 def ecr_build_image(
-    image: Image, session, cache=True, pull=True, push=True
+    image: Image, session, cache=True, pull=True, push=True,wsl=False
 ):
     print(f"Building image: {image}")
     # todo: add region param
@@ -225,14 +227,23 @@ def ecr_build_image(
         "REGION": region_name,
         "ACCOUNT": tag_account
     }
-    #base_path = os.path.join(image.path, tag_tag)
-    base_path = image.path
-    buildargs.update(
-        download_files(
+    base_path = os.path.join(image.path, tag_tag)
+    #base_path = image.path
+    df = download_files(
             files=image.download_files,
             session=session,
             base=base_path  # todo: optional temp dir if write only
         )
+    if wsl:
+        tdf = {}
+        for k,v in df.items():
+            v = v.replace("\\","/")
+            if v[1] == ":":
+                v = f"/mnt/{v[0]}{v[2:]}"
+            tdf[k]=v
+        df=tdf
+    buildargs.update(
+        df
     )
     print(f"buildargs: {buildargs}")
     try:
