@@ -1,18 +1,16 @@
 from aws_sagemaker_remote.s3 import parse_s3
 import uuid
-from aws_sagemaker_remote.util.logging import print_err
-from aws_sagemaker_remote.util.json_read import json_urlparse
+from aws_sagemaker_remote.util.logging_util import print_err
 
 
 def create_job(
     session,
     manifest, report, arn, account_id,
-    description, role_name, confirmation_required=True
+    description, role_name, confirmation_required=True,
+    ignore=0
 ):
     s3 = session.client('s3')
     s3control = session.client('s3control')
-    manifest = json_urlparse(manifest, session=session)
-    report = json_urlparse(report, session=session)
     manifest = parse_s3(manifest)
     report = parse_s3(report)
 
@@ -61,7 +59,7 @@ def create_job(
                 'Fields': [
                     'Bucket', 'Key'
                     # 'Ignore'|'Bucket'|'Key'|'VersionId',
-                ]
+                ] + (['Ignore'] * ignore)
             },
             'Location': manifest_location
         },
@@ -78,9 +76,10 @@ def create_job(
     )
     if 'JobId' in response and response['JobId']:
         job_id = response['JobId']
-        print(f"Created job [{job_id}.")
+        print(f"Created job [{job_id}]")
         if confirmation_required:
             print("Please confirm the job in the AWS Console.")
+        return response
     else:
         raise ValueError(
             "Job did not create successfully: {}".format(str(response)))

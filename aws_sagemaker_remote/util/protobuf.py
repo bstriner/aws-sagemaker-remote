@@ -4,7 +4,7 @@ from sagemaker.amazon.record_pb2 import Record
 from sagemaker.amazon.common import _write_recordio
 import json
 import io
-from aws_sagemaker_remote.util.logging import print_err
+from aws_sagemaker_remote.util.logging_util import print_err
 
 try:
     from mlio.integ.numpy import to_numpy
@@ -14,7 +14,8 @@ except:
         Some aws-sagemaker-remote features may not be available"
     )
 
-LENGTH_FEATURE="{}_length"
+LENGTH_FEATURE = "{}_length"
+
 
 def decode_scalar(data):
     ar = to_numpy(data)
@@ -53,6 +54,12 @@ def decode_string_feature(features, key):
 
 def decode_string(data, length):
     return decode_binary(data, length).tobytes().decode('utf-8')
+
+
+def decode_strings(datas, lengths):
+    return [
+        decode_string(data, length) for data, length in zip(datas, lengths)
+    ]
 
 
 def decode_bytesio(data, length):

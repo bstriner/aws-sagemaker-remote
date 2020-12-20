@@ -1,3 +1,12 @@
+"""
+Modes
+
+  - File
+  - Pipe
+  - ManifestFile
+  - AugmentedManifestFile
+"""
+
 import argparse
 from distutils.util import strtobool
 import os
@@ -93,6 +102,25 @@ for m in [
 
 
 class PathArgument(object):
+    def copy(
+        self,
+        **kwargs
+    ):
+        vals = {
+            "local": self.local,
+            "remote": self.remote,
+            "optional": self.optional,
+            "mode": self.mode,
+            "attributes": self.attributes,
+            "repeat": self.repeat,
+            "shuffle": self.shuffle,
+            "repeated": self.repeated,
+        }
+        vals.update(kwargs)
+        return PathArgument(
+            **vals
+        )
+
     def __init__(
         self,
         local=None,
@@ -101,7 +129,8 @@ class PathArgument(object):
         mode=None,
         attributes=None,
         repeat=1,
-        shuffle=False
+        shuffle=False,
+        repeated=False
     ):
         self.local = local
         self.remote = remote or 'default'
@@ -109,6 +138,7 @@ class PathArgument(object):
         self.mode = mode
         self.attributes = attributes
         self.repeat = repeat
+        self.repeated = repeated
         self.shuffle = shuffle
         if self.mode:
             assert self.mode in MODES

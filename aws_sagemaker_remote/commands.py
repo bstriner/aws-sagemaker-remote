@@ -13,7 +13,7 @@ class Command(object):
     def run(self, args):
         pass
 
-    def main(self, description=None):
+    def run_command(self, description=None):
         return run_command(self, description=description)
 
 

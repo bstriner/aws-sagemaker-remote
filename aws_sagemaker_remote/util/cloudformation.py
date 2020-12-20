@@ -1,4 +1,4 @@
-from aws_sagemaker_remote.util.logging import print_err
+from aws_sagemaker_remote.util.logging_util import print_err
 import time
 
 

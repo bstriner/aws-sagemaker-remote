@@ -4,8 +4,8 @@ from botocore.exceptions import ClientError
 from aws_sagemaker_remote.util.training import training_describe
 from .iam import ensure_inference_role
 from aws_sagemaker_remote.util.fields import get_field
-from aws_sagemaker_remote.ecr.images import ecr_ensure_image
-from aws_sagemaker_remote.util.json_read import json_urlparse
+from aws_sagemaker_remote.ecr.images import ecr_ensure_image, Image
+from aws_sagemaker_remote.util.cli_argument import cli_argument
 
 
 def model_delete(name, client):
@@ -39,13 +39,15 @@ def model_create(
     multimodel=False,
     accelerator_type=None
 ):
-    job = json_urlparse(job, session=session)
-    name = json_urlparse(name, session=session)
-    model_artifact = json_urlparse(model_artifact, session=session)
-    image_uri = ecr_ensure_image(
-        path=inference_image_path,
+    job = cli_argument(job, session=session)
+    name = cli_argument(name, session=session)
+    model_artifact = cli_argument(model_artifact, session=session)
+    image_config = Image(
         tag=inference_image,
-        accounts=inference_image_accounts.split(","),
+        path=inference_image_path,
+        accounts=inference_image_accounts)
+    image_uri = ecr_ensure_image(
+        image=image_config,
         session=session.boto_session
     )
     if (job and model_artifact) or (not (job or model_artifact)):

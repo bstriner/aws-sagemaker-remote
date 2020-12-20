@@ -1,12 +1,13 @@
 import sagemaker
-
+import boto3
 import pprint
 from aws_sagemaker_remote.util.fields import get_field
-from aws_sagemaker_remote.util.json_read import json_urlparse
+
 
 def training_describe(job_name, session, field=None):
-    client = session.boto_session.client('sagemaker')
-    job_name = json_urlparse(job_name, session=session)
+    if isinstance(session, sagemaker.Session):
+        session = session.boto_session
+    client = session.client('sagemaker')
     description = training_describe_get(job_name=job_name, client=client)
     description = get_field(description, field)
     return description
@@ -20,7 +21,8 @@ def training_describe_get(client, job_name):
 
 
 if __name__ == '__main__':
-    session = sagemaker.Session()
-    client = session.boto_session.client('sagemaker')
-    training_describe(
-        client=client, job_name='mnist-demo-2020-10-06-04-32-42-393')
+    session = sagemaker.Session(
+        boto_session=boto3.Session(profile_name='default'))
+    description = training_describe(
+        session=session, job_name='mnist-demo-2020-10-06-04-32-42-393')
+    print(description)

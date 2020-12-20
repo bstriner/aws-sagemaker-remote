@@ -27,8 +27,19 @@ module.exports = {
     libraryTarget: 'commonjs',
     path: outputDir
   },
+  externals: [awsExternals()],
   module: {
     strictExportPresence: true,
-  },
-  externals: [awsExternals(), 'bindings']
+
+    /*
+    rules: [
+      // ...
+      // Rewrites and emits
+      {
+        test: /\.js$/,
+        loader: "bindings-loader",
+      },
+    ],
+    */
+  }
 }

@@ -1,14 +1,15 @@
 from ..session import sagemaker_session
 from .config import SageMakerTrainingConfig
 import os
-from aws_sagemaker_remote.util.json_read import json_urlparse, json_converter
+from aws_sagemaker_remote.util.json_read import json_converter
 import json
 from sagemaker.pytorch import PyTorch
-from .channels import standardize_channels, upload_local_channels
+from .channels import standardize_channels, upload_local_channels, process_channels, set_suffixes
 from sagemaker.utils import name_from_base
 from .iam import ensure_training_role
 from .experiment import ensure_experiment
 from ..git import git_get_tags
+from .training_inputs import build_training_inputs
 from ..tags import make_tags
 from ..s3 import get_file_type, FileType
 from sagemaker.inputs import TrainingInput
@@ -19,7 +20,7 @@ from urllib.parse import urlparse
 from ..util.pipes import chunk_iterable
 from sagemaker.s3 import S3Uploader
 from sagemaker.inputs import ShuffleConfig
-from aws_sagemaker_remote.ecr.images import ecr_ensure_image
+from aws_sagemaker_remote.ecr.images import ecr_ensure_image, Image
 
 
 def sagemaker_training_run(
@@ -37,9 +38,11 @@ def sagemaker_training_run(
         profile_name=args.sagemaker_profile
     )
     image_uri = ecr_ensure_image(
-        path=args.sagemaker_training_image,
-        tag=args.sagemaker_training_image,
-        accounts=args.sagemaker_training_image.split(","),
+        image=Image(
+            path=args.sagemaker_training_image,
+            tag=args.sagemaker_training_image,
+            accounts=args.sagemaker_training_image.split(",")
+        ),
         session=session.boto_session
     )
     script = args.sagemaker_script
@@ -88,119 +91,25 @@ def sagemaker_training_run(
     if 'sagemaker-job-name' in hyperparameters:
         del hyperparameters['sagemaker-job-name']
 
-    channels = config.inputs
-    channels = {k: getattr(args, k) for k in channels.keys()}
-    channels = {k: json_urlparse(v, session=session) for k, v in channels.items()}
-    # and config.inputs[k].required == False}
-    channels = {k: v for k, v in channels.items() if v}
-    # for k,v in channels.items():
-    #    if not v:
-    #        raise ValueError("Channel [{}] is empty and required".format(k))
-    channels = standardize_channels(channels=channels)
-    channels = upload_local_channels(
-        channels=channels, session=session, prefix=input_prefix)
-
     s3 = session.boto_session.client('s3')
-    for k, v in channels.items():
-        key = '{}-suffix'.format(k.replace('_', '-'))
-        fileType = get_file_type(v, s3=s3)
-        if fileType == FileType.FILE:
-            hyperparameters[key] = os.path.basename(v)
-        elif fileType == FileType.FOLDER:
-            if key in hyperparameters:
-                del hyperparameters[key]
-        else:
-            raise ValueError()
-
-    chs = {}
-    for k, v in channels.items():
-        mode = getattr(args, "{}_mode".format(k))
-        shuffle = getattr(args, "{}_shuffle".format(k))
-        repeat = getattr(args, "{}_repeat".format(k))
-        if (
-            mode in [
-                'AugmentedManifestFolder',
-                'ManifestFolder'
-            ]
-        ):
-            uri = urlparse(v)
-            assert uri.scheme == 's3'
-            bucket = uri.netloc
-            key = uri.path.lstrip("/").rstrip("/")+"/"
-            manifests = s3.list_objects_v2(
-                Bucket=bucket,
-                # Delimiter='string',
-                # EncodingType='url',
-                # MaxKeys=123,
-                Prefix=key,
-                # ContinuationToken='string',
-                # FetchOwner=True|False,
-                # StartAfter='string',
-                # RequestPayer='requester',
-                # ExpectedBucketOwner='string'
-            )
-            if 'Contents' not in manifests:
-                raise ValueError("Cannot find contents of bucket [{}] key [{}]".format(
-                    bucket, key))
-            for i, manifest in enumerate(manifests['Contents']):
-                mkey = manifest['Key'].lstrip('/')
-                bn, _ = os.path.splitext(os.path.basename(mkey))
-                s3_data = "s3://{}/{}".format(bucket, mkey)
-                chs["{}_{}".format(k, bn.replace("-", "_"))] = TrainingInput(
-                    s3_data=s3_data,
-                    record_wrapping=get_record_wrapping(mode),
-                    content_type='application/x-recordio',
-                    s3_data_type=get_s3_data_type(mode),
-                    input_mode=get_mode(mode),
-                    attribute_names=config.inputs[k].attributes,
-                    shuffle_config=ShuffleConfig(123+i) if shuffle else None
-                )
-                print("Adding manifest [{}] to input [{}]".format(s3_data, k))
-        elif mode in [
-            'File', 'Pipe', 'ManifestFile', 'AugmentedManifestFile'
-        ]:
-            if repeat > 1:
-                for i in range(repeat):
-                    chs["{}_repeat_{}".format(k, i)] = TrainingInput(
-                        s3_data=v,
-                        # distribution=None,
-                        # compression=None,
-                        # content_type=None,
-                        record_wrapping=get_record_wrapping(mode),
-                        content_type='application/x-recordio' if get_mode(
-                            mode) not in ['File'] else None,
-                        s3_data_type=get_s3_data_type(mode),
-                        input_mode=get_mode(mode),
-                        attribute_names=config.inputs[k].attributes,
-                        shuffle_config=ShuffleConfig(
-                            123+1) if shuffle else None
-                        # target_attribute_name=None,
-                        # shuffle_config=None,
-                    )
-            else:
-                chs[k] = TrainingInput(
-                    s3_data=v,
-                    # distribution=None,
-                    # compression=None,
-                    # content_type=None,
-                    record_wrapping=get_record_wrapping(mode),
-                    #content_type='application/x-recordio' if get_mode(
-                    #        mode) not in ['File'] else None,
-                    s3_data_type=get_s3_data_type(mode),
-                    input_mode=get_mode(mode),
-                    attribute_names=config.inputs[k].attributes,
-                    shuffle_config=ShuffleConfig(123) if shuffle else None
-                    # target_attribute_name=None,
-                    # shuffle_config=None,
-                )
-        else:
-            raise ValueError("Unknown mode: {}->{}".format(k, mode))
-    channels = chs
+    channels = config.inputs
+    channels = process_channels(
+        channels,
+        args=args,
+        session=session,
+        prefix=input_prefix)
+    training_inputs = build_training_inputs(channels)
+    set_suffixes(
+        channels=channels,
+        session=session,
+        hyperparameters=hyperparameters
+    )
     print("Hyperparameters: {}".format(hyperparameters))
 
-    if not channels:
-        channels = None
-    print("Channels: {}".format(list(channels.keys())))
+    if not training_inputs:
+        training_inputs = None
+    else:
+        print("training_inputs: {}".format(list(training_inputs.keys())))
     #import pprint
     #pprint.pprint({k: v.config for k, v in channels.items()})
     #env = config.env
@@ -243,7 +152,7 @@ def sagemaker_training_run(
                 "If `sagemaker_trial_name` is provided, `sagemaker_experiment_name` must be provided as well")
         experiment_config = None
 
-    estimator.fit(channels, job_name=job_name,
+    estimator.fit(training_inputs, job_name=job_name,
                   wait=False, experiment_config=experiment_config)
     job = estimator.latest_training_job
     if args.sagemaker_output_json:

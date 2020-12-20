@@ -1,50 +1,59 @@
+from aws_sagemaker_remote.s3 import get_file_type, FileType, download_file_or_folder
 import os
 import base64
 import warnings
+from aws_sagemaker_remote.util.cli_argument import cli_argument
 try:
     import docker
+    from docker.errors import BuildError
 except:
     warnings.warn(
         "Python `docker` package not installed. \
         Some aws-sagemaker-remote features may not be available"
     )
+from aws_sagemaker_remote.util.sts import get_account
 
 
 class Image(object):
-    def __init__(self, name, path, tag, accounts=[]):
+    def __init__(self, path, tag, accounts=[], name=None, download_files=None):
         self.name = name
         self.path = path
         self.tag = tag
-        self.accounts = accounts
+        self.accounts = accounts or []
+        self.download_files = download_files or {}
+
+    def __str__(self):
+        accounts = ", ".join(self.accounts)
+        return f"Image(name: {self.name}, path: {self.path}, tag: {self.tag})"
 
 
 class Images(object):
     INFERENCE = Image(
-        'inference',
-        os.path.abspath(os.path.join(__file__, '../inference')),
-        'aws-sagemaker-remote-inference:latest',
-        ['763104351884']
+        name='inference',
+        path=os.path.abspath(os.path.join(__file__, '../inference')),
+        tag='aws-sagemaker-remote-inference:latest',
+        accounts=['763104351884']
     )
 
     PROCESSING = Image(
-        'processing',
-        os.path.abspath(os.path.join(__file__, '../processing')),
-        'aws-sagemaker-remote-processing:latest',
-        ['763104351884']
+        name='processing',
+        path=os.path.abspath(os.path.join(__file__, '../processing')),
+        tag='aws-sagemaker-remote-processing:latest',
+        accounts=['763104351884']
     )
 
     TRAINING = Image(
-        'training',
-        os.path.abspath(os.path.join(__file__, '../training')),
-        'aws-sagemaker-remote-training:latest',
-        ['763104351884']
+        name='training',
+        path=os.path.abspath(os.path.join(__file__, '../training')),
+        tag='aws-sagemaker-remote-training:latest',
+        accounts=['763104351884']
     )
 
     TRAINING_GPU = Image(
-        'training:gpu',
-        os.path.abspath(os.path.join(__file__, '../training')),
-        'aws-sagemaker-remote-training:gpu',
-        ['763104351884']
+        name='training:gpu',
+        path=os.path.abspath(os.path.join(__file__, '../training')),
+        tag='aws-sagemaker-remote-training:gpu',
+        accounts=['763104351884']
     )
 
     ALL = [
@@ -79,6 +88,7 @@ def ecr_describe_repository(ecr, account, name):
 
 
 def ecr_create_repository(ecr, name):
+    print(f"Creating repository '{name}'")
     repo = ecr.create_repository(
         repositoryName=name,
         tags=[
@@ -138,68 +148,122 @@ def ecr_login(ecr, docker_client, accounts):
 
 
 def ecr_ensure_image(
-    path, tag, accounts, session
+    image, session, force=False, cache=True, pull=True, push=True
 ):
     ecr = session.client('ecr')  # , region_name='eu-west-1')
     user_account = get_account(session)
-    tag_account, tag_repo, tag_tag = parse_image(tag, account=user_account)
-    img = get_image(ecr, tag_account, tag_repo, tag_tag)
-    if img is not None:
-        repo = ecr_ensure_repo(ecr, tag_account, tag_repo, user_account)
-        repo_uri = repo['repositoryUri']
-        full_uri = "{}:{}".format(repo_uri, tag_tag)
-        return full_uri
-    else:
-        return ecr_build_image(
-            path=path,
-            tag=tag,
-            accounts=accounts,
-            session=session,
-            pull=False,
-            cache=True
-        )
+    tag_account, tag_repo, tag_tag = parse_image(
+        image.tag, account=user_account)
+    if not force:
+        img = get_image(ecr, tag_account, tag_repo, tag_tag)
+        if img is not None:
+            repo = ecr_ensure_repo(ecr, tag_account, tag_repo, user_account)
+            repo_uri = repo['repositoryUri']
+            full_uri = "{}:{}".format(repo_uri, tag_tag)
+            return full_uri
+    return ecr_build_image(
+        image=image,
+        session=session,
+        pull=pull,
+        cache=cache,
+        push=push
+    )
+
+
+def download_files(
+    files, session, base
+):
+    #print(f"download_files: {files}")
+    s3 = session.client('s3')
+    ret = {}
+    for k, v in files.items():
+        dest = os.path.join(base, k)
+        v = cli_argument(v, session=session)
+        if os.path.exists(v):
+            ret[k.upper()] = v
+        elif os.path.exists(dest):
+            ret[k.upper()] = dest
+        elif v.startswith("s3://"):
+            ret[k.upper()] = download_file_or_folder(
+                uri=v,
+                session=session,
+                dest=dest,
+                file_subfolder=True
+            )
+        else:
+            raise ValueError(f"Unhandled file path {k}: {v}")
+    return ret
 
 
 def ecr_build_image(
-    path, tag, accounts, cache, pull, session
+    image: Image, session, cache=True, pull=True, push=True
 ):
+    print(f"Building image: {image}")
     # todo: add region param
     ecr = session.client('ecr')  # , region_name='eu-west-1')
     region_name = session.region_name
     if not region_name:
         raise ValueError("No default region name in your AWS profile")
     user_account = get_account(session)
-    tag_account, tag_repo, tag_tag = parse_image(tag, account=user_account)
+    tag_account, tag_repo, tag_tag = parse_image(
+        image.tag, account=user_account)
     repo = ecr_ensure_repo(ecr, tag_account, tag_repo, user_account)
     repo_uri = repo['repositoryUri']
-    path = os.path.join(path, tag_tag)
+    path = os.path.join(image.path, tag_tag)
 
-    if not accounts:
-        accounts = []
+    accounts = list(image.accounts)
     if tag_account not in accounts:
-        accounts = [tag_account] + list(accounts)
+        accounts.append(tag_account)
     client = docker.from_env()
     ecr_login(ecr, client, accounts)
     image_full = "{}:{}".format(repo_uri, tag_tag)
     print("Building image {} (cache: {}, pull:{})".format(
         image_full,
-        cache, pull))
-    client.images.build(
-        path=path,
-        tag=image_full,
-        buildargs={
-            "REGION": region_name
-        },
-        quiet=False,
-        nocache=not cache,
-        pull=pull
+        cache, pull
+    ))
+    buildargs = {
+        "REGION": region_name,
+        "ACCOUNT": tag_account
+    }
+    #base_path = os.path.join(image.path, tag_tag)
+    base_path = image.path
+    buildargs.update(
+        download_files(
+            files=image.download_files,
+            session=session,
+            base=base_path  # todo: optional temp dir if write only
+        )
     )
+    print(f"buildargs: {buildargs}")
+    try:
+        streamer = client.images.build(
+            path=path,
+            tag=image_full,
+            buildargs=buildargs,
+            quiet=False,
+            nocache=not cache,
+            pull=pull,
+            #decode=True
+        )
+    except BuildError as e:
+        for l in e.build_log:
+            if 'stream' in l:
+                for line in l['stream'].splitlines():
+                    print(line)
+        raise e
+    """
+    for chunk in streamer.build_log:
+        if 'stream' in chunk:
+            for line in chunk['stream'].splitlines():
+                print(line)
+    """
     print("Built image {}".format(image_full))
     #repo = "{}.dkr.ecr.{}.amazonaws.com/"
 
-    print("Pushing image {}".format(image_full))
-    client.images.push(repo_uri, tag_tag)
-    print("Pushed image {}".format(image_full))
+    if push:
+        print("Pushing image {}".format(image_full))
+        client.images.push(repo_uri, tag_tag)
+        print("Pushed image {}".format(image_full))
     return image_full
     # 683880991063.dkr.ecr.us-east-1.amazonaws.com/columbo:inference
 
@@ -227,10 +291,6 @@ def get_image(ecr, registry, repository, tag):
         return img[0]
     else:
         return None
-
-
-def get_account(session):
-    return session.client('sts').get_caller_identity().get('Account')
 
 
 def parse_image(uri, account):
@@ -289,9 +349,7 @@ if __name__ == '__main__':
     account = get_account(session)
     for image in Images.ALL:
         img = ecr_ensure_image(
-            path=image.path,
-            tag=image.tag,
-            accounts=image.accounts,
+            image=image,
             session=session
         )
         print("Image: {}".format(img))

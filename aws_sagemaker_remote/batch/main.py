@@ -4,11 +4,13 @@ from aws_sagemaker_remote.lamb.js.lamb import ensure_lambda_js
 from aws_sagemaker_remote.batch.job import create_job
 import boto3
 from aws_sagemaker_remote.args import bool_argument
+from aws_sagemaker_remote.util.cli_argument import cli_argument
 from aws_sagemaker_remote.lamb.lamb import update_function
 from aws_sagemaker_remote.util.cloudformation import get_cloudformation_output
 import json
 # todo: command wrapping
 from aws_sagemaker_remote.commands import Command
+import os
 
 
 class BatchConfig(object):
@@ -23,7 +25,7 @@ class BatchConfig(object):
         env_callback=None,
         webpack=True,
         manifest=None,
-        report="sagemaker://aws-sagemaker-remote/batch-reports",
+        report="aws-sagemaker-remote/batch-reports,sagemaker",
         timeout=30,
         soft_timeout=20,
         development=False,
@@ -70,6 +72,9 @@ def batch_argparse_callback(
         '--profile', type=str, default=config.profile, help='AWS profile name'
     )
     parser.add_argument(
+        '--output-json', type=str, default=None, help='Output job information to JSON file'
+    )
+    parser.add_argument(
         '--stack-name',
         type=str,
         default=config.stack_name,
@@ -87,6 +92,11 @@ def batch_argparse_callback(
         parser, '--deploy',
         default=False,
         help='Force Lambda deployment even if function already exists'
+    )
+    bool_argument(
+        parser, '--deploy-only',
+        default=False,
+        help='Deploy and exit. Use `--deploy yes --deploy-only yes` to force deployment and exit'
     )
     bool_argument(
         parser,
@@ -126,6 +136,18 @@ def batch_argparse_callback(
         help='S3 path to store report'
     )
     parser.add_argument(
+        '--ignore',
+        type=int,
+        default=0,
+        help='Columns to ignore'
+    )
+    parser.add_argument(
+        '--memory',
+        type=int,
+        default=128,
+        help='Memory to allocate'
+    )
+    parser.add_argument(
         '--soft-timeout',
         type=int,
         default=config.soft_timeout,
@@ -141,10 +163,13 @@ def batch_argparse_callback(
 def batch_run(args, config: BatchConfig):
     session = boto3.Session(profile_name=args.profile)
     sts = session.client('sts')
-    s3control = session.client('s3control')
-    s3 = session.client('s3')
+    #s3control = session.client('s3control')
+    #s3 = session.client('s3')
     lambda_client = session.client('lambda')
     cloudformation = session.client('cloudformation')
+
+    manifest = cli_argument(args.manifest, session=session)
+    report = cli_argument(args.report, session=session)
 
     # Create function
     ensure_lambda_js(
@@ -157,6 +182,8 @@ def batch_run(args, config: BatchConfig):
         extra_files=config.extra_files,
         package_json=config.package_json
     )
+    if args.deploy_only:
+        return
     function_arn, batch_role_arn = get_cloudformation_output(
         cloudformation=cloudformation,
         stack_name=args.stack_name,
@@ -178,7 +205,8 @@ def batch_run(args, config: BatchConfig):
         lambda_client=lambda_client,
         function_name=function_arn,
         env=lambda_env,
-        timeout=args.timeout
+        timeout=args.timeout,
+        memory=args.memory
     )
 
     #manifest = args.manifest
@@ -189,13 +217,19 @@ def batch_run(args, config: BatchConfig):
     account_id = identity['Account']
     print("AccountID: {}".format(account_id))
 
-    create_job(
+    response = create_job(
         session=session,
-        manifest=args.manifest,
-        report=args.report,
+        manifest=manifest,
+        report=report,
         arn=function_arn,
         account_id=account_id,
         description=args.description,
         role_name=batch_role_arn,  # args.role_name,
-        confirmation_required=args.confirmation_required
+        confirmation_required=args.confirmation_required,
+        ignore=args.ignore
     )
+    if args.output_json:
+        os.makedirs(os.path.dirname(
+            os.path.abspath(args.output_json)), exist_ok=True)
+        with open(args.output_json, 'w') as f:
+            json.dump(response, f)

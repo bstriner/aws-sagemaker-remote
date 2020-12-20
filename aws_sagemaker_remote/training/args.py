@@ -71,7 +71,7 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
                     v = {}
                     for ik, iv in ci.items():
                         if ik.startswith("{}_".format(k)):
-                            v[ik[len(k)+1:]]=iv
+                            v[ik[len(k)+1:]] = iv
                             kwargs[ik] = iv
                     v = v or None
                     kwargs[k] = v
@@ -108,6 +108,7 @@ def sagemaker_env_args(args: argparse.Namespace, config: SageMakerTrainingConfig
     #print("Updated args: {}".format(new_args))
     return new_args
 
+
 def sagemaker_training_args(
     parser: argparse.ArgumentParser,
     script,
@@ -121,9 +122,9 @@ def sagemaker_training_args(
     dependencies=None,
     additional_arguments=None,
     argparse_callback=None,
-    model_dir='output',
-    output_dir='output',
-    checkpoint_dir='output',
+    model_dir='output/model',
+    output_dir='output/output',
+    checkpoint_dir='output/checkpoint',
     checkpoint_s3='default',
     checkpoint_container=CHECKPOINT_LOCAL_PATH,
     training_image=Images.TRAINING.tag,
@@ -312,7 +313,7 @@ def sagemaker_training_args(
             type=str,
             default=output_json,
             help='Output job details to JSON file.')
-            
+
         sagemaker_training_dependency_args(
             parser=parser, dependencies=config.dependencies)
     sagemaker_training_model_args(parser=parser, model_dir=model_dir)
@@ -373,7 +374,7 @@ def sagemaker_training_dependency_args(parser: argparse.ArgumentParser, dependen
 
 
 def sagemaker_training_channel_args(parser: argparse.ArgumentParser, inputs):
-    if inputs:
+    if inputs and len(inputs):
         group = parser.add_argument_group(
             title='Inputs',
             description='Inputs (local or S3)'
@@ -386,8 +387,14 @@ def sagemaker_training_channel_args(parser: argparse.ArgumentParser, inputs):
             # if env_key in os.environ:
             #    local = os.environ[env_key]
             group.add_argument(
-                flag, type=str,  default=default.local,
-                help=CHANNEL_HELP.format(channel=channel, default=default.local))
+                flag,
+                type=str,
+                default=None if default.repeated else default.local,
+                help=CHANNEL_HELP.format(
+                    channel=channel,
+                    default=default.local),
+                action='append' if default.repeated else 'store'
+            )
             mode_flag = variable_to_argparse("{}_mode".format(channel))
             group.add_argument(
                 mode_flag, type=str,  default=default.mode or "File",

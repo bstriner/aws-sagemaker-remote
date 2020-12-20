@@ -2,7 +2,7 @@
 Dummy inference script echoes input as output
 """
 
-print("Loaded inference.py: {}".format(__file__))
+#print("Loaded inference.py: {}".format(__file__))
 
 
 def model_fn(model_dir):
@@ -27,6 +27,7 @@ def predict_fn(input_data, model):
     """
     print("Running predict_fn")
     return input_data
+
 
 def output_fn(prediction, content_type):
     """

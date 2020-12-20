@@ -8,7 +8,7 @@ import subprocess
 import warnings
 import time
 import sys
-from aws_sagemaker_remote.util.logging import print_err
+from aws_sagemaker_remote.util.logging_util import print_err
 
 LAMBDA_KEY = 'LambdaFunction'
 
@@ -24,14 +24,18 @@ def lambda_ignore(src, names):
     ]
 
 
-def update_function(lambda_client, function_name, env, timeout):
+def update_function(
+    lambda_client, function_name, env, timeout,
+    memory
+    #todo: memory
+):
     response = lambda_client.update_function_configuration(
         FunctionName=function_name,
         # Role='string',
         # Handler='string',
         # Description='string',
         Timeout=timeout,
-        # MemorySize=123,
+        MemorySize=memory,
         # VpcConfig={
         #    'SubnetIds': [
         #         'string',

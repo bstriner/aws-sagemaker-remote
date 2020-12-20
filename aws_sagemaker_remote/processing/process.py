@@ -12,8 +12,9 @@ import json
 
 import datetime
 
-from aws_sagemaker_remote.util.json_read import json_urlparse, json_converter
-from aws_sagemaker_remote.ecr.images import Images, ecr_ensure_image
+from aws_sagemaker_remote.util.cli_argument import cli_argument
+from aws_sagemaker_remote.util.json_read import json_converter
+from aws_sagemaker_remote.ecr.images import Images, ecr_ensure_image, Image
 from ..session import sagemaker_session
 from .iam import ensure_processing_role
 from ..args import variable_to_argparse, get_local_path, PathArgument
@@ -35,7 +36,7 @@ def sagemaker_processing_run(args, config):
 
     inputs = {
         k: PathArgument(
-            local=json_urlparse(getattr(args, k), session=session),
+            local=cli_argument(getattr(args, k), session=session),
             optional=v.optional,
             mode=getattr(args, "{}_mode".format(k) or v.mode or 'File')
         ) for k, v in config.inputs.items()
@@ -48,8 +49,9 @@ def sagemaker_processing_run(args, config):
     }
     outputs = {
         k: PathArgument(
-            local=json_urlparse(getattr(args, k), session=session),
-            remote=json_urlparse(getattr(args, "{}_s3".format(k)), session=session),
+            local=cli_argument(getattr(args, k), session=session),
+            remote=cli_argument(
+                getattr(args, "{}_s3".format(k)), session=session),
             optional=v.optional,
             mode=getattr(args, "{}_mode".format(k) or v.mode or 'EndOfJob')
         ) for k, v in config.outputs.items()
@@ -206,9 +208,11 @@ def process(
     iam = session.boto_session.client('iam')
 
     image_uri = ecr_ensure_image(
-        path=image_path,
-        tag=image,
-        accounts=image_accounts.split(","),
+        image=Image(
+            path=image_path,
+            tag=image,
+            accounts=image_accounts.split(",")
+        ),
         session=session.boto_session
     )
     role = ensure_processing_role(iam=iam, role_name=role)

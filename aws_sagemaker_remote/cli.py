@@ -1,17 +1,20 @@
 import click
+import sagemaker
+import boto3
+import logging
+import os
+from aws_sagemaker_remote.util.upload import upload
+from aws_sagemaker_remote.util.concat import s3_concat
+from aws_sagemaker_remote.util.json_read import json_read
+from aws_sagemaker_remote.util.cli_argument import cli_argument
+from aws_sagemaker_remote.ecr.images import Images, ecr_build_image
 from aws_sagemaker_remote.util.training import training_describe
 from aws_sagemaker_remote.util.processing import processing_describe
 from aws_sagemaker_remote.inference.model import model_create, model_delete, model_describe
 from aws_sagemaker_remote.inference.endpoint import endpoint_create, endpoint_delete, endpoint_describe, endpoint_invoke
 from aws_sagemaker_remote.inference.endpoint_config import endpoint_config_create, endpoint_config_delete, endpoint_config_describe
-import sagemaker
-import boto3
-from aws_sagemaker_remote.util.upload import upload
-import logging
-import os
-from aws_sagemaker_remote.util.json_read import json_read
+from aws_sagemaker_remote.batch.report import batch_report
 
-from aws_sagemaker_remote.ecr.images import Images, ecr_build_image
 logging.getLogger('boto3').setLevel(logging.CRITICAL)
 logging.getLogger('botocore').setLevel(logging.CRITICAL)
 
@@ -25,9 +28,35 @@ def cli(profile='default'):
     current_profile = profile
 
 
+@cli.group(name='batch')
+def cli_batch():
+    pass
+
+
+@cli_batch.command(name='report')
+@click.option('--job', type=str, default=[], multiple=True)
+@click.option('--output', type=str, default='output/batch-report')
+def cli_batch_report(job, output):
+    session = boto3.Session(profile_name=current_profile)
+    batch_report(
+        session=session,
+        job=job,
+        output=output
+    )
+
+
 @cli.group(name='json')
 def cli_json():
     pass
+
+
+@cli_json.command(name='parse', help="""Parse comma-delimited path [PATH]
+""")
+@click.argument('path')
+def cli_json_parse(path):
+    session = boto3.Session(profile_name=current_profile)
+    data = cli_argument(path, session=session)
+    print(data)
 
 
 @cli_json.command(name='read', help="""Read field [FIELD] from JSON file at [PATH]
@@ -35,18 +64,40 @@ def cli_json():
 @click.argument('path')
 @click.argument('field')
 def cli_json_read(path, field):
-    data = json_read(path, field)
+    session = boto3.Session(profile_name=current_profile)
+    path = cli_argument(path, session=session)
+    data = json_read(path, field, session=session)
     print(data)
 
 
-@cli.command(name='upload')
+@cli.group(name="s3")
+def cli_s3():
+    pass
+
+
+@cli_s3.command(name='upload')
 @click.argument('src')
 @click.argument('dst')
 @click.option('--gz/--no-gz', default=False)
-def upload_cli(src, dst, gz):
+def cli_s3_upload(src, dst, gz):
     session = boto3.Session(profile_name=current_profile)
     session = sagemaker.Session(session)
     upload(src=src, dst=dst, gz=gz, session=session)
+
+
+@cli_s3.command(name='concat')
+@click.option('--manifest')
+@click.option('--limit', type=int, default=0)
+@click.option('--output', type=str, required=True)
+def cli_s3_concat(manifest, limit, output):
+    session = boto3.Session(profile_name=current_profile)
+    session = sagemaker.Session(session)
+    s3_concat(
+        manifest=cli_argument(manifest, session=session),
+        limit=limit,
+        output=output,
+        session=session
+    )
 
 
 @cli.group()
@@ -72,7 +123,7 @@ def processing_describe_cli(name, field):
     session = boto3.Session(profile_name=current_profile)
     session = sagemaker.Session(session)
     description = processing_describe(
-        job_name=name,
+        job_name=cli_argument(name, session=session),
         field=field,
         session=session
     )
@@ -102,7 +153,7 @@ def training_describe_cli(name, field):
     session = boto3.Session(profile_name=current_profile)
     session = sagemaker.Session(session)
     description = training_describe(
-        job_name=name,
+        job_name=cli_argument(name, session=session),
         field=field,
         session=session
     )
@@ -139,9 +190,9 @@ def model_create_cli(
     session = boto3.Session(profile_name=current_profile)
     session = sagemaker.Session(session)
     model_create(
-        job=job,
-        model_artifact=model_artifact,
-        name=name,
+        job=cli_argument(job, session=session),
+        model_artifact=cli_argument(model_artifact, session=session),
+        name=cli_argument(name, session=session),
         session=session,
         inference_image=inference_image,
         inference_image_path=inference_image_path,
@@ -159,7 +210,7 @@ def model_delete_cli(name):
     """
     session = boto3.Session(profile_name=current_profile)
     client = session.client('sagemaker')
-    model_delete(name=name, client=client)
+    model_delete(name=cli_argument(name, session=session), client=client)
 
 
 @model.command(name='describe')
@@ -172,7 +223,7 @@ def model_describe_cli(name, field):
     session = boto3.Session(profile_name=current_profile)
     client = session.client('sagemaker')
     description = model_describe(
-        name=name,
+        name=cli_argument(name, session=session),
         client=client,
         field=field
     )
@@ -201,8 +252,8 @@ def endpoint_config_create_cli(name, model, instance_type, force):
     session = boto3.Session(profile_name=current_profile)
     session = sagemaker.Session(session)
     endpoint_config_create(
-        name=name,
-        model=model,
+        name=cli_argument(name, session=session),
+        model=cli_argument(model, session=session),
         instance_type=instance_type,
         force=force,
         session=session)
@@ -218,7 +269,7 @@ def endpoint_config_describe_cli(name, field):
     session = boto3.Session(profile_name=current_profile)
     client = session.client('sagemaker')
     description = endpoint_config_describe(
-        name=name,
+        name=cli_argument(name, session=None),
         client=client,
         field=field
     )
@@ -234,7 +285,7 @@ def endpoint_config_delete_cli(name):
     session = boto3.Session(profile_name=current_profile)
     client = session.client('sagemaker')
     endpoint_config_delete(
-        name=name,
+        name=cli_argument(name, session=None),
         client=client
     )
 
@@ -257,7 +308,9 @@ def endpoint_create_cli(name, config, force):
     session = boto3.Session(profile_name=current_profile)
     client = session.client('sagemaker')
     endpoint_create(
-        name=name, config=config, force=force,
+        name=cli_argument(name, session=session),
+        config=cli_argument(config, session=session),
+        force=force,
         client=client)
 
 
@@ -267,8 +320,9 @@ def endpoint_delete_cli(name):
     session = boto3.Session(profile_name=current_profile)
     client = session.client('sagemaker')
     endpoint_delete(
-        name=name,
-        client=client)
+        name=cli_argument(name, session=session),
+        client=client
+    )
 
 
 @endpoint.command(name='describe')
@@ -278,7 +332,7 @@ def endpoint_describe_cli(name, field):
     session = boto3.Session(profile_name=current_profile)
     client = session.client('sagemaker')
     description = endpoint_describe(
-        name=name,
+        name=cli_argument(name, session=session),
         client=client,
         field=field)
     print(description)
@@ -297,8 +351,8 @@ def endpoint_invoke_cli(name, model, variant, input, output, input_type, output_
     session = boto3.Session(profile_name=current_profile)
     runtime_client = session.client('sagemaker-runtime')
     result = endpoint_invoke(
-        name=name,
-        model=model,
+        name=cli_argument(name, session=session),
+        model=cli_argument(model, session=session),
         variant=variant,
         input=input,
         output=output,

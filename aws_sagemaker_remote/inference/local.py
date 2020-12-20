@@ -1,11 +1,13 @@
 import click
 import os
 import sys
+from aws_sagemaker_remote.util.fs import write_chunks
 
 
 def inference_handler(model_dir):
     if not os.path.exists(model_dir):
-        raise ValueError("Model directory [{}] does not exist".format(model_dir))
+        raise ValueError(
+            "Model directory [{}] does not exist".format(model_dir))
     try:
         from sagemaker_inference.default_handler_service import DefaultHandlerService
     except ImportError:
@@ -31,14 +33,14 @@ def inference_handler(model_dir):
     return handler, context
 
 
-def inference_run(handler,context, input, output, input_type, output_type):
+def inference_run(handler, context, input, output, input_type, output_type):
 
     try:
         from mms.context import RequestProcessor
     except ImportError:
         raise click.UsageError(
             "Install multi-model-server to use local inference")
-    
+
     with open(input, 'rb') as f:
         data = f.read()
     context.request_processor = [RequestProcessor(
@@ -59,16 +61,7 @@ def inference_run(handler,context, input, output, input_type, output_type):
             status, "\n".join(result)))
     assert len(result) > 0
     if output:
-        os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
-        if isinstance(result[0], str):
-            mode = 'w'
-        elif isinstance(result[0], bytes):
-            mode = 'wb'
-        else:
-            raise ValueError("Unknown result type: {}".format(type(result[0])))
-        with open(output, mode) as f:
-            for chunk in result:
-                f.write(chunk)
+        write_chunks(path=output, chunks=result)
         print("Saved to {}".format(output))
         return None
     else:
@@ -81,7 +74,8 @@ def inference_local(model_dir, input, output, input_type, output_type):
         handler=handler, context=context, input=input,
         output=output, output_type=output_type, input_type=input_type)
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     model_dir = "/mnt/c/Projects/speaker-identification/output/model"
     input1 = "/mnt/c/Projects/speaker-identification/data/test/16k (3).wav"
     input2 = "/mnt/c/Projects/speaker-identification/data/test/16k (4).wav"
@@ -92,6 +86,6 @@ if __name__=='__main__':
         output=None, output_type='application/json', input_type='audio/x-wav')
     print("res1: {}".format(res1))
     res2 = inference_run(
-    handler=handler, context=context, input=input1,
-    output=None, output_type='application/json', input_type='audio/x-wav')
+        handler=handler, context=context, input=input1,
+        output=None, output_type='application/json', input_type='audio/x-wav')
     print("res2: {}".format(res2))

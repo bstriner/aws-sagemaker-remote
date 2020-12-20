@@ -78,7 +78,6 @@ def sam_build(
         print("Exception with command [{}]".format(" ".join(cmd)))
         print("Run in cwd [{}]".format(base_dir))
         print("Ensure package `aws-sam-cli` is installed correctly")
-        input("Press enter to continue (temporary directory will be deleted)...")
         raise e
 
 def sam_deploy(
@@ -133,5 +132,4 @@ def sam_deploy(
         print("Exception with command [{}]".format(" ".join(cmd)))
         print("Run in cwd [{}]".format(build_dir))
         print("Ensure package `aws-sam-cli` is installed correctly")
-        input("Press enter to continue (temporary directory will be deleted)...")
         raise e

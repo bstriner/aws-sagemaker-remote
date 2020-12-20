@@ -3,11 +3,13 @@ import json
 from sagemaker.amazon.common import read_recordio
 import io
 import array
+from itertools import count
 import multiprocessing
 import warnings
-from aws_sagemaker_remote.util.logging import print_err
+from aws_sagemaker_remote.util.logging_util import print_err
 try:
     import mlio
+    from mlio.integ.torch import as_torch
 except:
     print_err(
         "Python `mlio` package not installed. \
@@ -17,7 +19,81 @@ except:
 MAGIC = 0xCED7230A
 
 
-class PipeIterator(object):
+def epoch_iterable(epochs):
+    if epochs == 0:
+        return count()
+    else:
+        return range(epochs)
+
+
+class ProtobufPipeIterator(object):
+    def __init__(self, path, features, count=0, epochs=1, **reader_params):
+        self.path = path
+        self.features = features
+        self.reader_params = reader_params
+        #self.count = count
+        # self.pipe = mlio.SageMakerPipe(self.path) #fifo_id =
+        self.epochs = epochs
+        self.count = multiprocessing.Value('i', count)
+        #self.lock = multiprocessing.Lock()
+
+    def iterate_features(self, examples):
+        for example in examples:
+            yield {
+                k: as_torch(example[k]) for k in self.features
+            }
+
+    def increment(self):
+        #with self.lock:
+        fifo_id = self.count.value
+        self.count.value = fifo_id+1
+        return fifo_id
+
+    def pipe_iterator(self, fifo_id=0):
+        fifo_id = self.increment()
+        print(f"opening pipe iterator {self.path}:{fifo_id}")
+        pipe = mlio.SageMakerPipe(self.path, fifo_id=fifo_id)
+        reader_params = mlio.DataReaderParams(
+            dataset=[pipe],
+            **self.reader_params
+        )
+        reader = mlio.RecordIOProtobufReader(reader_params)
+        return reader
+
+    def __iter__(self):
+        iterator = self.pipe_iterator()
+        epochs = epoch_iterable(self.epochs)
+        for epoch in epochs:
+            print(f"starting pipeiterator {self.path} {epoch}: {self.count.value}")
+            if epoch > 0:
+                fifo_id = self.increment()
+                print(f"fifo_id {fifo_id}")
+            for rec in self.iterate_features(iterator):
+                yield rec
+            iterator.reset()
+            #print("Iterator complete")
+
+
+def decode_strings_numpy(data, data_length):
+    assert data.shape[0] == data_length.shape[0]
+    for d, dl in zip(data, data_length):
+        b = d.tobytes()
+        b = b[:dl.item()]
+        b = b.decode('utf-8')
+        yield b
+
+
+def decode_strings_torch(data, data_length):
+    assert data.size(0) == data_length.size(0)
+    data_np = data.numpy()
+    for d, dl in zip(data_np, data_length):
+        b = d.tobytes()
+        b = b[:dl.item()]
+        b = b.decode('utf-8')
+        yield b
+
+
+class RawPipeIterator(object):
     def __init__(self, path, size=1, count=0, epochs=1):
         self.path = path
         self.size = size
@@ -41,13 +117,12 @@ class PipeIterator(object):
     def __iter__(self):
         # pipe = mlio.SageMakerPipe(self.path)  # fifo_id =
         if self.epochs == 0:
-            while True:
-                for rec in self.pipe_iterator():
-                    yield rec
+            epochs = count()
         else:
-            for _ in range(self.epochs):
-                for rec in self.pipe_iterator():
-                    yield rec
+            epochs = range(self.epochs)
+        for epoch in epochs:
+            for rec in self.pipe_iterator():
+                yield rec
 
 
 def pipe_iterator(path, size=1):
