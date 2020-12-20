@@ -11,5 +11,6 @@ RUN apt-get update && apt-get install -y libsvm3 sox
 RUN pip install --no-cache-dir --upgrade pandas awscli boto3 multi-model-server sagemaker-inference==1.5.1 sagemaker-pytorch-inference==1.5.1 sagemaker pytorch-igniter scipy torch torchvision matplotlib pillow
 RUN pip install --no-cache-dir --upgrade torchaudio
 RUN pip install --no-cache-dir --upgrade webrtcvad
+RUN pip install --no-cache-dir --upgrade scikit-learn
 
 RUN python -c "import torchaudio"

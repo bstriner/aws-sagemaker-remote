@@ -30,9 +30,10 @@ def transcode_ffmpeg(data, input_fmt='wav', sample_rate=None, channels=1, codec=
     ])
     proc = subprocess.run(
         cmd,
-        capture_output=True,
+        #capture_output=True,
         input=data,
-        check=True
+        check=True,
+        stdout=subprocess.PIPE
     )
     fs, data = wavfile.read(BytesIO(proc.stdout))
     return fs, data

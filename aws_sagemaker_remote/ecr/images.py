@@ -308,6 +308,7 @@ def parse_image(uri, account):
     """
     TRAINING_IMAGE = '683880991063.dkr.ecr.us-east-1.amazonaws.com/columbo-sagemaker-training:latest'
     """
+    print("parse_image: {}, account: {}".format(uri, account))
     try:
         uri = uri.split("/")
         if len(uri) == 2:

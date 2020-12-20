@@ -194,7 +194,7 @@ def model_create_cli(
         model_artifact=cli_argument(model_artifact, session=session),
         name=cli_argument(name, session=session),
         session=session,
-        inference_image=inference_image,
+        inference_image=cli_argument(inference_image),
         inference_image_path=inference_image_path,
         inference_image_accounts=inference_image_accounts,
         role=role,
@@ -253,7 +253,7 @@ def endpoint_config_create_cli(name, model, instance_type, force):
     session = sagemaker.Session(session)
     endpoint_config_create(
         name=cli_argument(name, session=session),
-        model=cli_argument(model, session=session),
+        model=[cli_argument(m, session=session) for m in model],
         instance_type=instance_type,
         force=force,
         session=session)
