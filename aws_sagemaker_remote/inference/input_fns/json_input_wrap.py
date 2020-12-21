@@ -1,8 +1,10 @@
-from aws_sagemaker_remote.inference.mime import JSON_TYPES, MIME_KEYS
-from aws_sagemaker_remote.s3 import parse_s3, get_file_bytes
 import os
 import json
 import mimetypes
+import boto3
+
+from aws_sagemaker_remote.inference.mime import JSON_TYPES, MIME_KEYS
+from aws_sagemaker_remote.s3 import get_file_bytes
 
 
 def get_mime(info, uri):
@@ -25,7 +27,7 @@ def get_extension(info, uri):
     return extension
 
 
-def json_input_wrap(request_body, request_content_type):
+def json_input_wrap(request_body, request_content_type, profile_name=None):
     if request_content_type in JSON_TYPES:
         if isinstance(request_body, bytes):
             request_body = request_body.decode('utf-8')
@@ -36,7 +38,7 @@ def json_input_wrap(request_body, request_content_type):
         if 's3' in info:
             uri = info['s3']
             #url = parse_s3(uri)
-            session = boto3.Session()
+            session = boto3.Session(profile_name=profile_name)
             s3 = session.client('s3')
             data = get_file_bytes(uri, s3=s3)
             extension = get_extension(info=info, uri=uri)
@@ -62,3 +64,16 @@ def json_input_wrap(request_body, request_content_type):
         if extension and extension.startswith("."):
             extension = extension[1:]
         return request_body, extension, request_content_type
+
+
+if __name__ == '__main__':
+    request_body, extension, request_content_type = json_input_wrap(
+        "{\"s3\":\"s3://voicebucket102512-dev/uploads/0ff0c8df-fc97-4117-a4f1-c2183f062cfe/0bcd0881-ce88-4ec6-b1f4-cf1897deb577.weba\"}",
+        "application/json",
+        profile_name='rita'
+    )
+    print("{}, {}, {}".format(
+        len(request_body),
+        extension,
+        request_content_type
+    ))
