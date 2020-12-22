@@ -4,7 +4,7 @@ LABEL maintainer="Amazon AI"
 LABEL com.amazonaws.sagemaker.capabilities.accept-bind-to-port=true
 LABEL com.amazonaws.sagemaker.capabilities.multi-models=true
 
-ARG PYTHON_VERSION=3.8
+ARG PYTHON_VERSION=3.8.7
 #ARG PYTORCH_VERSION=1.5.0
 #ARG TORCHVISION_VERSION=0.6.0
 ARG MMS_VERSION=1.0.8
@@ -40,7 +40,8 @@ RUN apt-get update && apt-get install -y \
    apt-transport-https ca-certificates libcurl3-gnutls \
    openmpi-bin \
    libopenmpi-dev \
-   libhogweed4
+   libhogweed4 \
+   ffmpeg
 
 RUN curl -L -o ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
    && chmod +x ~/miniconda.sh \
@@ -59,22 +60,27 @@ RUN /opt/conda/bin/conda install -y \
    numpy \
    scipy \
    typing \
-   && /opt/conda/bin/conda install -y \
-   -c pytorch pytorch torchvision torchaudio cpuonly
-#   && /opt/conda/bin/conda clean -ya
-RUN apt-get update
-#opencv breaks apt
-#RUN conda install -y -c anaconda -c conda-forge opencv 
-RUN apt-get update
-RUN conda install -y \
+   -c pytorch pytorch torchvision torchaudio cpuonly \
    scikit-learn \
    pandas \
    h5py \
-   requests
+   requests \
+   -c conda-forge pyyaml
+#   && /opt/conda/bin/conda clean -ya
+#RUN apt-get update
+#opencv breaks apt
+#RUN conda install -y -c anaconda -c conda-forge opencv 
+#RUN apt-get update
+
+
 RUN pip install --upgrade pip --trusted-host pypi.org --trusted-host files.pythonhosted.org
 RUN ln -s /opt/conda/bin/pip /usr/local/bin/pip3 
-RUN pip install --upgrade mxnet-model-server
-RUN pip install --upgrade opencv-python
+RUN pip install  --upgrade --no-cache-dir \
+   "sagemaker-pytorch-inference<2" \
+   opencv-python \
+   mxnet-model-server \
+   sagemaker-containers pillow awscli multi-model-server
+#RUN pip install  --upgrade 
 
 # Uninstall and re-install torch and torchvision from the PyTorch website
 #RUN pip uninstall -y torch \
@@ -90,12 +96,9 @@ COPY config.properties /home/model-server
 
 RUN chmod +x /usr/local/bin/dockerd-entrypoint.py
 
-RUN pip install  --upgrade --no-cache-dir "sagemaker-pytorch-inference<2"
 
 #RUN curl https://aws-dlc-licenses.s3.amazonaws.com/pytorch-1.5.0/license.txt -o /license.txt
 
-RUN conda install -y -c conda-forge pyyaml
-RUN pip install  --upgrade sagemaker-containers pillow awscli multi-model-server
 #RUN apt-get update
 
 EXPOSE 8080 8081

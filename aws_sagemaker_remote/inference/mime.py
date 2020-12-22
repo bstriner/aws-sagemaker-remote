@@ -17,7 +17,16 @@ AUDIO_TYPES = {
         'audio/x-wave',
         'audio/wave',
         'audio/wav'
+    ],
+    '.weba': [
+        'audio/webm'
+    ],
+    '.webm': [
+        'audio/webm'
     ]
+}
+FIX_FORMATS = {
+    'weba': 'webm'
 }
 
 for k, v in AUDIO_TYPES.items():

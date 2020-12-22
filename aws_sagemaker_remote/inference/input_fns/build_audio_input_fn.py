@@ -21,7 +21,7 @@ def build_audio_input_fn(sample_rate=None, channels=1):
             request_body=request_body,
             request_content_type=request_content_type
         )
-        #print(f"data: {type(data), len(data)}, extension: {extension}, mime: {mime}")
+        print(f"json_input_wrap result: {type(data), len(data)}, extension: {extension}, mime: {mime}")
         if mime.startswith('audio/'):
             #ext = mimetypes.guess_extension(mime)
             data = transcode_ffmpeg(

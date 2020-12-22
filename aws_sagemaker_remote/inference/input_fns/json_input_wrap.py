@@ -37,12 +37,15 @@ def json_input_wrap(request_body, request_content_type, profile_name=None):
         }
         if 's3' in info:
             uri = info['s3']
+            uri = uri.strip()
+            #print("S3 Json: `{}`".format(uri))
             #url = parse_s3(uri)
-            session = boto3.Session(profile_name=profile_name)
+            session = boto3.Session(profile_name='rita')#profile_name)
             s3 = session.client('s3')
             data = get_file_bytes(uri, s3=s3)
             extension = get_extension(info=info, uri=uri)
             mime = get_mime(info=info, uri=uri)
+            #print(f"get_mime `{mime}` `{info}` `{uri}`")
             return data, extension, mime
         elif 'local' in info:
             path = info['local']
@@ -77,3 +80,7 @@ if __name__ == '__main__':
         extension,
         request_content_type
     ))
+    print(get_mime({},'s3://asdasd/asasd.weba'))
+    print(get_mime({},'s3://asdasd/asasd.mp3'))
+    print(get_mime({},'s3://asdasd/asasd.mpeg'))
+     
