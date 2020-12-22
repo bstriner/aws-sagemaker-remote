@@ -174,7 +174,7 @@ def ecr_ensure_image(
 def download_files(
     files, session, base
 ):
-    print(f"download_files: {files} to base {base}")
+    #print(f"download_files: {files} to base {base}")
     s3 = session.client('s3')
     ret = {}
     for k, v in files.items():
@@ -193,7 +193,7 @@ def download_files(
             )
         else:
             raise ValueError(f"Unhandled file path {k}: {v}")
-    print(f"downloades_files: {ret}")
+    #print(f"downloaded_files: {ret}")
     return ret
 
 

@@ -7,7 +7,7 @@ from aws_sagemaker_remote.util.upload import upload
 from aws_sagemaker_remote.util.concat import s3_concat
 from aws_sagemaker_remote.util.json_read import json_read
 from aws_sagemaker_remote.util.cli_argument import cli_argument
-from aws_sagemaker_remote.ecr.images import Images, ecr_build_image
+from aws_sagemaker_remote.ecr.images import Images, ecr_build_image, Image
 from aws_sagemaker_remote.util.training import training_describe
 from aws_sagemaker_remote.util.processing import processing_describe
 from aws_sagemaker_remote.inference.model import model_create, model_delete, model_describe
@@ -385,17 +385,17 @@ def ecr_build():
 @ecr_build.command(name='all')
 @click.option('--cache/--no-cache', default=True)
 @click.option('--pull/--no-pull', default=True)
-def ecr_build_all(cache, pull):
+@click.option('--push/--no-push', default=True)
+def ecr_build_all(cache, pull, push):
     session = boto3.Session(profile_name=current_profile)
     for image in Images.ALL:
         print("Building Image {}".format(image.name))
         ecr_build_image(
-            path=image.path,
-            tag=image.tag,
-            accounts=image.accounts,
-            cache=cache,
+            image=image,
             pull=pull,
-            session=session)
+            push=push,
+            session=session
+        )
 
 
 def ecr_image_build_cli(image):
@@ -405,17 +405,22 @@ def ecr_image_build_cli(image):
     @click.option('--account', type=str, default=image.accounts, multiple=True)
     @click.option('--cache/--no-cache', default=True)
     @click.option('--pull/--no-pull', default=True)
-    def fn(path, tag, account, cache, pull):
+    @click.option('--push/--no-push', default=True)
+    def fn(path, tag, account, cache, pull, push):
         """
         """
         session = boto3.Session(profile_name=current_profile)
         ecr_build_image(
-            path=path,
-            tag=tag,
-            accounts=account,
+            image=Image(
+                path=path,
+                tag=tag,
+                accounts=account
+            ),
             cache=cache,
             pull=pull,
-            session=session)
+            push=push,
+            session=session
+        )
     return fn
 
 

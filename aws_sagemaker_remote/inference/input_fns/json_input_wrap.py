@@ -10,7 +10,7 @@ from aws_sagemaker_remote.s3 import get_file_bytes
 def get_mime(info, uri):
     mime = None
     for k in MIME_KEYS:
-        if k in info:
+        if k in info and info[k]:
             mime = info[k]
     if not mime:
         mime, _ = mimetypes.guess_type(uri)
