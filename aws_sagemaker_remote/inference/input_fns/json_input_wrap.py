@@ -40,7 +40,7 @@ def json_input_wrap(request_body, request_content_type, profile_name=None):
             uri = uri.strip()
             #print("S3 Json: `{}`".format(uri))
             #url = parse_s3(uri)
-            session = boto3.Session(profile_name='rita')#profile_name)
+            session = boto3.Session(profile_name=profile_name)
             s3 = session.client('s3')
             data = get_file_bytes(uri, s3=s3)
             extension = get_extension(info=info, uri=uri)
