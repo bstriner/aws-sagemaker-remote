@@ -4,7 +4,7 @@ LABEL maintainer="Amazon AI"
 LABEL com.amazonaws.sagemaker.capabilities.accept-bind-to-port=true
 LABEL com.amazonaws.sagemaker.capabilities.multi-models=true
 
-ARG PYTHON_VERSION=3.8.7
+ARG PYTHON_VERSION=3.8.6
 #ARG PYTORCH_VERSION=1.5.0
 #ARG TORCHVISION_VERSION=0.6.0
 ARG MMS_VERSION=1.0.8
@@ -52,6 +52,8 @@ RUN conda init && conda init bash
 RUN echo "conda activate" >> ~/.bashrc
 RUN /opt/conda/bin/conda install -y \
    -c anaconda \
+   -c pytorch \
+   -c conda-forge \
    python=$PYTHON_VERSION \
    cython \
    ipython \
@@ -60,12 +62,12 @@ RUN /opt/conda/bin/conda install -y \
    numpy \
    scipy \
    typing \
-   -c pytorch pytorch torchvision torchaudio cpuonly \
+   pytorch torchvision torchaudio cpuonly \
    scikit-learn \
    pandas \
    h5py \
    requests \
-   -c conda-forge pyyaml
+   pyyaml 
 #   && /opt/conda/bin/conda clean -ya
 #RUN apt-get update
 #opencv breaks apt
