@@ -120,7 +120,7 @@ def upload_local_channel(channel, session, s3_uri):
     else:
         print("Type {}".format(type(s3_uri)))
         raise ValueError(
-            "Unknown scheme: [{}] (uri: {})".format(url.scheme, s3_uri))
+            "Unknown scheme: [{}] (uri: {})".format(url.scheme, channel))
 
 
 def expand_folder_channels(channels, session):
@@ -142,7 +142,7 @@ def expand_folder_channels(channels, session):
             "Folder" in v.mode
         ):
             target_mode = v.mode.replace("Folder", "File")
-            uri = urlparse(v)
+            uri = urlparse(v.local)
             url = parse_s3(uri, trailing=True)
             assert url
             manifests = s3.list_objects_v2(
@@ -164,7 +164,7 @@ def expand_folder_channels(channels, session):
             for i, manifest in enumerate(manifests['Contents']):
                 mkey = manifest['Key'].lstrip('/')
                 bn, _ = os.path.splitext(os.path.basename(mkey))
-                s3_data = "s3://{}/{}".format(bucket, mkey)
+                s3_data = "s3://{}/{}".format(url["Bucket"], mkey)
                 chs["{}_{}".format(k, bn.replace("-", "_"))] = v.copy(
                     local=s3_data,
                     mode=target_mode
@@ -193,12 +193,15 @@ def set_suffixes(channels, session, hyperparameters):
     s3 = session.client('s3')
     for k, v in channels.items():
         key = '{}-suffix'.format(k.replace('_', '-'))
-        fileType = get_file_type(v, s3=s3)
-        if fileType == FileType.FILE:
-            hyperparameters[key] = os.path.basename(v)
-        elif fileType == FileType.FOLDER:
+        if v.mode in ['File']:
+            fileType = get_file_type(v.local, s3=s3)
+            if fileType == FileType.FILE:
+                hyperparameters[key] = os.path.basename(v.local)
+            elif fileType == FileType.FOLDER:
+                if key in hyperparameters:
+                    del hyperparameters[key]
+            else:
+                raise ValueError()
+        else:
             if key in hyperparameters:
                 del hyperparameters[key]
-        else:
-            raise ValueError()
-

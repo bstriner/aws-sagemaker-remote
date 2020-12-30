@@ -145,6 +145,12 @@ class PathArgument(object):
         # if self.optional and self.local:
         #    print("Optional inputs must default to nothing")
 
+    def __str__(self) -> str:
+        return f"PathArgument({self.local}, {self.mode})"
+
+    def __repr__(self) -> str:
+        return f"PathArgument({self.local}, {self.mode})"
+
 
 OPTIONAL = PathArgument(optional=True)
 
