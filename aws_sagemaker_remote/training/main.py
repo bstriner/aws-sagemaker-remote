@@ -89,10 +89,7 @@ def sagemaker_training_main(
         Keyword arguments to :meth:`aws_sagemaker_remote.training.args.sagemaker_training_args`
     """
     # todo: detect module, class, etc. files
-    command = TrainingCommand(
+    return TrainingCommand(
         main=main, script=script,
         metrics=metrics, **training_args
-    )
-    run_command(
-        command=command, description=description
-    )
+    ).run_command(description=description)

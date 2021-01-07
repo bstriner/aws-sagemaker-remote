@@ -16,6 +16,7 @@ def get_file(url, s3):
     obj = s3.get_object(**s3_url)
     return closing(obj['Body'])
 
+
 def get_file_bytes(url, s3):
     with get_file(url=url, s3=s3) as f:
         return f.read()
@@ -171,6 +172,38 @@ def download_file_or_folder(uri, session, dest, file_subfolder=True, skip_if_exi
     pass
 
 
+def copy_s3(src, dst, s3):
+    src = parse_s3(src, trailing=True)
+    dst = parse_s3(dst, trailing=True)
+    response = s3.list_objects_v2(
+        Bucket=src["Bucket"],
+        # Delimiter='string',
+        # EncodingType='url',
+        # MaxKeys=123,
+        Prefix=src['Key'],
+        # ContinuationToken='string',
+        # FetchOwner=True|False,
+        # StartAfter='string',
+        # RequestPayer='requester',
+        # ExpectedBucketOwner='string'
+    )
+    if 'Contents' in response:
+        for file in response['Contents']:
+            fkey = file['Key'].lstrip('/')
+            assert fkey.startswith(src['Key'])
+            fout = f"{dst['Key']}{fkey[len(src['Key']):]}"
+            s3.copy_object(
+                CopySource={
+                    "Bucket": src['Bucket'],
+                    "Key": file['Key']
+                },
+                Bucket=dst['Bucket'],
+                Key=fout
+            )
+    else:
+        print(f"No files found under {src}")
+
+
 if __name__ == '__main__':
     session = boto3.Session(profile_name='default')
     s3 = session.client('s3')
@@ -178,7 +211,13 @@ if __name__ == '__main__':
         s3=s3,
         url='s3://sagemaker-us-east-1-683880991063/aws-sagemaker-remote/batch-reports/job-ee1e7233-2668-4320-9fff-e13613bd7622/manifest.json'
     ))
+    copy_s3(
+        's3://sagemaker-us-east-1-683880991063/demo-checkpoint',
+        's3://sagemaker-us-east-1-683880991063/demo-checkpoint-cp',
+        s3=s3
+    )
     """
+    aws --profile default s3 ls s3://sagemaker-us-east-1-683880991063/demo-checkpoint-cp/
     uri = 's3://sagemaker-us-east-1-683880991063/demo-training-inputs-2020-10-01-15-49-26-167/inputs/test_folder/test_file.txt'
     print(get_file_type(uri, s3))
     uri = 's3://sagemaker-us-east-1-683880991063/demo-training-inputs-2020-10-01-15-49-26-167/inputs/test_folder'

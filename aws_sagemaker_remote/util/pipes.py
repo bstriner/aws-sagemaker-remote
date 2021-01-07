@@ -28,6 +28,7 @@ def epoch_iterable(epochs):
 
 class ProtobufPipeIterator(object):
     def __init__(self, path, features, count=0, epochs=1, **reader_params):
+        print(f"Created ProtobufPipeIterator path: {path}, count: {count}")
         self.path = path
         self.features = features
         self.reader_params = reader_params

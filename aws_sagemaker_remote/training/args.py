@@ -127,6 +127,7 @@ def sagemaker_training_args(
     checkpoint_dir='output/checkpoint',
     checkpoint_s3='default',
     checkpoint_container=CHECKPOINT_LOCAL_PATH,
+    checkpoint_initial=None,
     training_image=Images.TRAINING.tag,
     training_image_path=Images.TRAINING.path,
     training_image_accounts=Images.TRAINING.accounts,
@@ -323,6 +324,7 @@ def sagemaker_training_args(
         checkpoint_dir=checkpoint_dir,
         checkpoint_s3=checkpoint_s3,
         checkpoint_container=checkpoint_container,
+        checkpoint_initial=checkpoint_initial,
         enable_sagemaker=enable_sagemaker)
     sagemaker_training_channel_args(parser=parser, inputs=config.inputs)
     if additional_arguments:
@@ -341,7 +343,7 @@ def sagemaker_training_output_args(parser: argparse.ArgumentParser, output_dir):
 
 
 def sagemaker_training_checkpoint_args(
-        parser: argparse.ArgumentParser, checkpoint_dir,
+        parser: argparse.ArgumentParser, checkpoint_dir, checkpoint_initial=None,
         checkpoint_s3='default', checkpoint_container=CHECKPOINT_LOCAL_PATH, enable_sagemaker=True):
 
     group = parser.add_argument_group(
@@ -358,6 +360,8 @@ def sagemaker_training_checkpoint_args(
         group.add_argument('--sagemaker-checkpoint-container', type=str,
                            default=checkpoint_container,
                            help='Location to store checkpoints on container (default: "{}")'.format(checkpoint_container))
+        group.add_argument('--checkpoint-initial', type=str,
+                           default=checkpoint_initial, help='Initial checkpoint')
 
 
 def sagemaker_training_dependency_args(parser: argparse.ArgumentParser, dependencies):

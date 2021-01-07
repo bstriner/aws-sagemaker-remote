@@ -21,6 +21,7 @@ from ..util.pipes import chunk_iterable
 from sagemaker.s3 import S3Uploader
 from sagemaker.inputs import ShuffleConfig
 from aws_sagemaker_remote.ecr.images import ecr_ensure_image, Image
+from aws_sagemaker_remote.s3 import copy_s3
 
 
 def sagemaker_training_run(
@@ -54,6 +55,7 @@ def sagemaker_training_run(
         raise ValueError("script=[{}] must be in source=[{}]")
     entry_point = script[len(source)+1:]
     entry_point = entry_point.replace("\\", "/")
+    print(f"Source: {source}, entry_point: {entry_point}")
     metric_definitions = [
         {'Name': k, 'Regex': v}
         for k, v in metrics.items()
@@ -88,6 +90,21 @@ def sagemaker_training_run(
     else:
         checkpoint_s3 = "s3://{}/{}/checkpoints".format(bucket, job_name)
     hyperparameters['checkpoint-dir'] = args.sagemaker_checkpoint_container
+    # Initial checkpoint
+    if args.checkpoint_initial:
+        if args.checkpoint_initial.startswith("s3://"):
+            copy_s3(
+                args.checkpoint_initial,
+                checkpoint_s3,
+                session.boto_session.client('s3')
+            )
+        else:
+            S3Uploader.upload(
+                local_path=args.checkpoint_initial,
+                desired_s3_uri=checkpoint_s3,
+                sagemaker_session=session
+            )
+
     if 'sagemaker-job-name' in hyperparameters:
         del hyperparameters['sagemaker-job-name']
 
@@ -98,7 +115,7 @@ def sagemaker_training_run(
         args=args,
         session=session,
         prefix=input_prefix)
-    training_inputs = build_training_inputs(channels)
+    training_inputs = build_training_inputs(channels=channels, args=args)
     set_suffixes(
         channels=channels,
         session=session,

@@ -7,7 +7,6 @@ FROM nvidia/cuda:10.2-cudnn8-devel-ubuntu18.04
 ARG PYTHON_VERSION=3.8
 #ARG OPEN_MPI_VERSION=4.0.1
 
-SHELL ["/bin/bash", "--login", "-c"]
 
 #ENV PYTHONDONTWRITEBYTECODE=1
 #ENV PYTHONUNBUFFERED=1
@@ -19,6 +18,8 @@ ENV LC_ALL=C.UTF-8
 #ENV PATH=/opt/conda/bin:$PATH
 ENV SAGEMAKER_TRAINING_MODULE=sagemaker_pytorch_container.training:main
 ENV DGLBACKEND=pytorch
+
+SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /
 
@@ -44,8 +45,7 @@ RUN apt-get update \
   sox \
   libsox-dev \
   openmpi-bin \
-  libopenmpi-dev \
-  && rm -rf /var/lib/apt/lists/*
+  libopenmpi-dev
 
 # sudo apt-get install --reinstall openmpi-bin libopenmpi-dev
 

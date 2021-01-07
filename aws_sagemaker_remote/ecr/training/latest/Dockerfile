@@ -43,8 +43,7 @@ RUN apt-get update \
   sox \
   libsox-dev \
   openmpi-bin \
-  libopenmpi-dev \
-  && rm -rf /var/lib/apt/lists/*
+  libopenmpi-dev
 
 # sudo apt-get install --reinstall openmpi-bin libopenmpi-dev
 
@@ -72,18 +71,19 @@ RUN curl -L -o ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-lat
 
 RUN conda update conda
 RUN conda init bash
-RUN conda create --name pytorch -y python=$PYTHON_VERSION
+#RUN conda create --name pytorch -y python=$PYTHON_VERSION
 #ENV PATH=/opt/conda/envs/pytorch/bin:$PATH
 #RUN bash -c "conda init bash"
 #RUN conda init bash
-RUN echo "conda activate pytorch" >> ~/.bashrc
+RUN echo "conda activate" >> ~/.bashrc
 #RUN conda run -n pytorch conda install -y \
 #RUN bash --login -c "conda init bash"
-RUN conda install -n pytorch -y \
+RUN conda install -y \
   -c mlio \
   -c pytorch \
   -c conda-forge \
   -c dglteam \
+  python=$PYTHON_VERSION \
   numpy \
   ipython \
   mkl \
@@ -102,7 +102,7 @@ RUN conda install -n pytorch -y \
   torchaudio \
   cpuonly \
   mlio-py \
-  libmlio
+  mlio-py libmlio
 # \
 #&& conda run -n pytorch clean -ya \
 #&& conda clean -ya
@@ -146,14 +146,20 @@ RUN conda install -n pytorch -y \
 #RUN rm /usr/local/bin/python && ln -s /opt/conda/envs/pytorch/bin/python /usr/local/bin/python
 #RUN rm /usr/local/bin/python3 && ln -s /opt/conda/envs/pytorch/bin/python /usr/local/bin/python3
 
-RUN conda run -n pytorch python -c "import torch"
-RUN conda run -n pytorch python -c "import torchaudio"
-RUN conda run -n pytorch python -c "import torchvision"
-RUN conda run -n pytorch python -c "import mlio"
+#RUN conda run -n pytorch python -c "import torch"
+#RUN conda run -n pytorch python -c "import torchaudio"
+#RUN conda run -n pytorch python -c "import torchvision"
+#RUN conda run -n pytorch python -c "import mlio"
 
-RUN conda run -n pytorch python -m pip install --upgrade pip --trusted-host pypi.org --trusted-host files.pythonhosted.org \
+RUN python -c "import torch"
+RUN python -c "import torchaudio"
+RUN python -c "import torchvision"
+RUN python -c "import mlio"
+
+
+RUN python -m pip install --upgrade pip --trusted-host pypi.org --trusted-host files.pythonhosted.org \
   #   && ln -s /opt/conda/bin/pip /usr/local/bin/pip3 \
-  && conda run -n pytorch python -m pip install --no-cache-dir -U \
+  && python -m pip install --no-cache-dir -U \
   awscli \
   fastai \
   scipy \
@@ -168,10 +174,11 @@ RUN conda run -n pytorch python -m pip install --upgrade pip --trusted-host pypi
   pytorch-igniter
 
 
-RUN conda run -n pytorch python -c "import torch"
-RUN conda run -n pytorch python -c "import torchaudio"
-RUN conda run -n pytorch python -c "import torchvision"
-RUN conda run -n pytorch python -c "import mlio"
+RUN python -c "import torch"
+RUN python -c "import torchaudio"
+RUN python -c "import torchvision"
+RUN python -c "import mlio"
+
 #"sagemaker-pytorch-training<2" \
 # && pip install --no-cache-dir -U https://pytorch-aws.s3-us-west-2.amazonaws.com/pytorch-1.5.0/py3/cpu/torch-1.5.0-cp36-cp36m-manylinux1_x86_64.whl \
 # && pip uninstall -y torchvision \
@@ -195,6 +202,6 @@ RUN conda run -n pytorch python -c "import mlio"
 #RUN curl -o /license.txt https://aws-dlc-licenses.s3.amazonaws.com/pytorch-1.5.0/license.txt
 # Starts framework
 #ENTRYPOINT ["bash", "-m", "start_with_right_hostname.sh"]
-ENTRYPOINT ["/opt/conda/bin/conda","run","-n","pytorch"]
+ENTRYPOINT ["/opt/conda/bin/conda","run"]
 CMD ["/bin/bash"]
 #"conda", "run", "-n", "myenv", "/bin/bash", "-c"

@@ -23,6 +23,9 @@ AUDIO_TYPES = {
     ],
     '.webm': [
         'audio/webm'
+    ],
+    '.ogg': [
+        'audio/ogg'
     ]
 }
 FIX_FORMATS = {
