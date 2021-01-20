@@ -34,12 +34,24 @@ class Images(object):
         tag='aws-sagemaker-remote-inference:latest',
         accounts=['763104351884']
     )
+    INFERENCE_PY27GPUTF = Image(
+        name='inference:py27-gpu-tf',
+        path=os.path.abspath(os.path.join(__file__, '../inference')),
+        tag='aws-sagemaker-remote-inference:py27-gpu-tf',
+        accounts=[]
+    )
 
     PROCESSING = Image(
         name='processing',
         path=os.path.abspath(os.path.join(__file__, '../processing')),
         tag='aws-sagemaker-remote-processing:latest',
         accounts=['763104351884']
+    )
+    PROCESSING_PY27GPUTF = Image(
+        name='processing:py27-gpu-tf',
+        path=os.path.abspath(os.path.join(__file__, '../processing')),
+        tag='aws-sagemaker-remote-processing:py27-gpu-tf',
+        accounts=[]
     )
 
     TRAINING = Image(
@@ -58,7 +70,9 @@ class Images(object):
 
     ALL = [
         INFERENCE,
+        INFERENCE_PY27GPUTF,
         PROCESSING,
+        PROCESSING_PY27GPUTF,
         TRAINING,
         TRAINING_GPU
     ]

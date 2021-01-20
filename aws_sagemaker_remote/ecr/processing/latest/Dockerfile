@@ -2,9 +2,9 @@
 
 FROM ubuntu:18.04
 RUN apt-get update && \
-  apt-get install -y libsvm3 sox python3-pip python3-dev ffmpeg wget curl git
-RUN python3 -m pip install --upgrade pip
-RUN pip3 install --no-cache-dir --upgrade pandas awscli boto3 sagemaker scipy torch torchvision matplotlib mlflow
+  apt-get install -y libsvm3 sox python-pip python-dev ffmpeg wget curl git
+RUN python -m pip install --upgrade pip
+RUN pip install --no-cache-dir --upgrade pandas awscli boto3 sagemaker scipy torch torchvision matplotlib mlflow
 
 # LDC sph2pipe
 RUN mkdir -p /home/sph2pipe \
@@ -16,4 +16,4 @@ RUN mkdir -p /home/sph2pipe \
 	&& cp sph2pipe /bin
 
 ENTRYPOINT ["/bin/bash", "-c"]
-CMD ["python3", "--version"]
+CMD ["python", "--version"]
