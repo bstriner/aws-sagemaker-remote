@@ -2,6 +2,8 @@ import boto3
 import sagemaker
 from click import UsageError
 from sagemaker.utils import name_from_base
+import os
+import json
 
 
 def transform_create(
@@ -18,7 +20,8 @@ def transform_create(
     output_type,
     instance_type,
     instance_count,
-    payload_mb
+    payload_mb,
+    output_json
 ):
     if(isinstance(session, sagemaker.Session)):
         session = session.boto_session
@@ -84,3 +87,8 @@ def transform_create(
     print(f"Response: {response}")
     arn = response.get('TransformJobArn', None)
     print(f"ARN: {arn}")
+    if output_json:
+        os.makedirs(os.path.dirname(output_json), exist_ok=True)
+        with open(output_json, 'w') as f:
+            json.dump(response, f)
+        print(f"Response saved as [{output_json}]")

@@ -182,6 +182,7 @@ def transform():
 @click.option('--output-s3', help='Output path on S3', type=str, default=None, required=True)
 @click.option('--input-type', help='Input MIME type ("Content-Type" header)', type=str, default=None, required=True)
 @click.option('--output-type', help='Output MIME type ("Accept" header)', type=str, default=None, required=True)
+@click.option('--output-json', help='Save job information in JSON file', type=str, default=None, required=True)
 @click.option('--instance-type', help='SageMaker Instance type (e.g., ml.m5.large)', type=str, default="ml.m5.large")
 @click.option('--instance-count', help='Number of containers to use (processing will be distributed)', type=int, default=1)
 @click.option('--payload-mb', help='Maximum payload size (MB)', type=int, default=32)
@@ -198,7 +199,8 @@ def transform_create_cli(
         output_type,
         instance_type,
         instance_count,
-        payload_mb):
+        payload_mb,
+        output_json):
     """
     Create a batch transformation job for objects in S3
 
@@ -222,6 +224,7 @@ def transform_create_cli(
         output_type=output_type,
         instance_type=instance_type,
         instance_count=instance_count,
+        output_json=output_json,
         payload_mb=payload_mb
     )
 
