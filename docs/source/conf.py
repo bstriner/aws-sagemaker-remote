@@ -16,6 +16,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(__file__, '../../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(__file__, '../../../demo')))
 
 
 # -- Project information -----------------------------------------------------
@@ -37,9 +38,12 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
     'sphinx.ext.napoleon',
-    'sphinxarg.ext'
+    'sphinxarg.ext',
+    'sphinx_click',
+    'sphinx.ext.autosectionlabel'
     # 'm2r',
 ]
+autosectionlabel_prefix_document = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

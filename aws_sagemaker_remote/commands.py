@@ -7,6 +7,11 @@ class Command(object):
     def __init__(self, help=None):
         self.help = help
 
+    def parser(self):
+        parser = ArgumentParser()
+        self.configure(parser)
+        return parser
+
     def configure(self, parser: ArgumentParser):
         pass
 

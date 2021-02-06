@@ -1,0 +1,16 @@
+
+pandas
+awscli
+boto3
+multi-model-server
+sagemaker-inference==1.5.1
+sagemaker-pytorch-inference==1.5.1
+sagemaker 
+pytorch-igniter
+scipy
+torch
+torchvision
+matplotlib
+pillow
+torchaudio
+webrtcvad

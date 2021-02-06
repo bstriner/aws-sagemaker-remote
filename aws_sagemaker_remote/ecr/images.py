@@ -40,6 +40,12 @@ class Images(object):
         tag='aws-sagemaker-remote-inference:py27-gpu-tf',
         accounts=[]
     )
+    INFERENCE_PY27TF = Image(
+        name='inference:py27-tf',
+        path=os.path.abspath(os.path.join(__file__, '../inference')),
+        tag='aws-sagemaker-remote-inference:py27-tf',
+        accounts=[]
+    )
 
     PROCESSING = Image(
         name='processing',
@@ -71,6 +77,7 @@ class Images(object):
     ALL = [
         INFERENCE,
         INFERENCE_PY27GPUTF,
+        INFERENCE_PY27TF,
         PROCESSING,
         PROCESSING_PY27GPUTF,
         TRAINING,

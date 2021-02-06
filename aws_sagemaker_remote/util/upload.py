@@ -9,7 +9,7 @@ import boto3
 from urllib.parse import urlparse
 
 
-def upload(src, dst, gz, session: sagemaker.Session):
+def upload(src, dst, gz, session: sagemaker.Session, root='.'):
     if not os.path.exists(src):
         raise click.UsageError("Source must exist")
     if not dst.startswith('s3://'):
@@ -39,7 +39,7 @@ def upload(src, dst, gz, session: sagemaker.Session):
             with _tmpdir() as tmp:
                 p = os.path.join(tmp, file_name)
                 with tarfile.open(p, 'w:gz') as arc:
-                    arc.add(name=src, arcname='.', recursive=True)
+                    arc.add(name=src, arcname=root, recursive=True)
                 s3 = session.boto_session.client('s3')
                 s3.upload_file(p, bucket, key)
         else:

@@ -1,5 +1,30 @@
-Inference
-=========
+SageMaker Inference
+============================
+
+SageMaker real-time inference deploys your models to containers 
+so they are always ready to perform inference quickly.
+
+Terminology
+------------
+
+- An inference package is a GZip file.
+
+  - The root of this package is the ``model_dir``
+  - The package must contain a folder named ``code`` containing a file named ``inference.py``
+
+- A SageMaker model identifies an inference package and an ECR docker image
+- A SageMaker endpoint configuration describes a set of models and the type and number of instances
+- A SageMaker endpoint is a deployment of an endpoint configuration that is live for inference
+
+Usage
+------------
+
+Create a model
+
+- Automatically as the output of an ``aws-sagemaker-remote`` training script
+- Manually by uploading a GZip file to S3 and building a docker image
+
+Invoke a local inference package extracted to a folder
 
 .. code-block: bash
 
@@ -7,6 +32,7 @@ Inference
    md5sum demo/test_image.jpg
    md5sum output/result/local_result.jpg
 
+Create, invoke, then destroy a remote endpoint
 
 .. code-block: bash
 

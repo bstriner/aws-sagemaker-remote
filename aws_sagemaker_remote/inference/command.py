@@ -48,6 +48,30 @@ def run_inference_module(
     )
 
 
+#todo
+"""
+class SimpleInferenceCommand(Command):
+    def configure(self, parser: ArgumentParser):
+        parser.add_argument(
+            '--module', default=self.config.module, type=str
+        )
+        parser.add_argument(
+            '--model-dir', default=self.config.model_dir, type=str
+        )
+        parser.add_argument(
+            '--input', default=self.config.input, type=str
+        )
+        parser.add_argument(
+            '--input-type', default=self.config.input_type, type=str
+        )
+        parser.add_argument(
+            '--output', default=self.config.output, type=str
+        )
+        parser.add_argument(
+            '--output-type', default=self.config.output_type, type=str
+        )
+        pass
+"""
 class InferenceCommand(Command):
     def configure(self, parser: ArgumentParser):
         parser.add_argument(

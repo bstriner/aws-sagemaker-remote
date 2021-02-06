@@ -30,7 +30,8 @@ class BatchConfig(object):
         soft_timeout=20,
         development=False,
         extra_files=None,
-        package_json=None
+        package_json=None,
+        support_soft=False
     ):
         self.stack_name = stack_name
         self.code_dir = code_dir
@@ -47,6 +48,7 @@ class BatchConfig(object):
         self.development = development
         self.extra_files = extra_files
         self.package_json = package_json
+        self.support_soft = support_soft
 
 
 class BatchCommand(Command):
@@ -78,14 +80,14 @@ def batch_argparse_callback(
         '--stack-name',
         type=str,
         default=config.stack_name,
-        help='Stack name for deploying Lambda',
+        help=f'AWS CloudFormation stack name to which resources are deployed (default: {config.stack_name})',
         required=not config.stack_name
     )
     parser.add_argument(
         '--code-dir',
         type=str,
         default=config.code_dir,
-        help='Directory of Lambda code',
+        help=f'Directory of Lambda code (default: {config.code_dir})',
         required=not config.code_dir
     )
     bool_argument(
@@ -108,13 +110,13 @@ def batch_argparse_callback(
         parser,
         '--development',
         default=config.development,
-        help='Require confirmation in console to run job'
+        help='Webpack in development mode'
     )
     parser.add_argument(
         '--manifest',
         type=str,
         default=config.manifest,
-        help='File manifest to process',
+        help='File manifest to process. Must be a CSV with first column containing an S3 bucket and second column containing an S3 key.',
         required=not config.manifest
     )
     parser.add_argument(
@@ -127,19 +129,19 @@ def batch_argparse_callback(
         '--description',
         type=str,
         default=config.description,
-        help='S3 path to store report'
+        help='Description of batch job'
     )
     parser.add_argument(
         '--timeout',
         type=int,
         default=config.timeout,
-        help='S3 path to store report'
+        help='Hard timeout of Lambda in seconds'
     )
     parser.add_argument(
         '--ignore',
         type=int,
         default=0,
-        help='Columns to ignore'
+        help='Number of columns of input CSV to ignore. Job will fail if CSV does not have 2+ignore columns. For example, if your CSV has bucket, key, and 5 more columns set ignore to 5.'
     )
     parser.add_argument(
         '--memory',
@@ -147,12 +149,13 @@ def batch_argparse_callback(
         default=128,
         help='Memory to allocate'
     )
-    parser.add_argument(
-        '--soft-timeout',
-        type=int,
-        default=config.soft_timeout,
-        help='S3 path to store report'
-    )
+    if config.support_soft:
+        parser.add_argument(
+            '--soft-timeout',
+            type=int,
+            default=config.soft_timeout,
+            help='Soft timeout in seconds'
+        )
     # parser.add_argument(
     #    '--role-name', type=str, default=config.role_name, help='S3 path to store report'
     # )

@@ -1,11 +1,27 @@
-Processing
-===========
+SageMaker Processing
+====================
 
-Processing jobs accept a set of one or more input file paths and write to a set of one or more output file paths. Ideal for file conversion or other data preparation tasks.
+Processing jobs accept a set of one or more input file paths and write to a set of one or more output file paths.
+Ideal for file conversion or other data preparation tasks.
+S3 files can be automatically copied to local storage, so little modification to current scripts is required.
 
+SageMaker processing is best suited for processing large files or if random-access to files is required.
+Alternatively:
 
-* Running locally, standard command line arguments for inputs and outputs are used as usual
-* Running remotely, data is uploaded and downloaded using S3 for tracking
+- If the process requires more code or a custom image that cannot be used by a Lambda,
+  but the process can be fully parallelized,
+  use SageMaker batch processing to allocate a fleet of containers that will process each
+  object in S3.
+  :ref:`SageMaker transform documentation<transform:SageMaker Batch Transform>`
+- If the process can be run in a small JavaScript package, processing can be performed
+  faster, cheaper, and with better parallelization using S3 batch and Lambda.
+  :ref:`S3 Batch documentation<batch:S3 Batch Processing>`
+
+A SageMaker processing script can be run locally or remotely.
+
+* Running locally, your command line arguments for inputs and outputs are passed to your function as usual
+* Running remotely, paths referenced by command line arguments are uploaded and downloaded
+  using S3 and your function is executed remotely with command line arguments referencing local copies of those files
 
 Basic usage
 -----------

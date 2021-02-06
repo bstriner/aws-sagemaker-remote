@@ -1,7 +1,8 @@
 # columbo-compute
 
-FROM nvidia/cuda:10.2-cudnn8-devel-ubuntu18.04
+#FROM nvidia/cuda:10.2-cudnn8-devel-ubuntu18.04
 #FROM ubuntu:18.04
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
 
 SHELL ["/bin/bash", "--login", "-c"]
 
@@ -120,20 +121,22 @@ RUN echo "conda activate" >> ~/.bashrc
 # The following section uninstalls torch and torchvision before installing the
 # custom versions from an S3 bucket. This will need to be removed in the future
 #&& ln -s /opt/conda/bin/pip /usr/local/bin/pip3 \
-RUN pip install --upgrade pip --trusted-host pypi.org --trusted-host files.pythonhosted.org \
-	&& pip install --no-cache-dir -U \
+RUN pip install --no-cache-dir --upgrade pip --trusted-host pypi.org --trusted-host files.pythonhosted.org
+RUN pip install --no-cache-dir -U \
 	awscli \
-	fastai \
 	scipy \
 	sagemaker \
 	psutil \
 	Pillow \
 	matplotlib \
 	boto3 \
-	tensorflow-gpu==1.4.1 \
+	tensorflow-gpu==1.14.0 \
 	pandas \
 	numpy \
-	opencv-python
+	dlib \
+	scikit-image
+#	fastai \
+#	opencv-python
 #	sagemaker-experiments \
 #	smdebug \
 
@@ -146,13 +149,13 @@ RUN pip install --upgrade pip --trusted-host pypi.org --trusted-host files.pytho
 #    https://torchvision-build.s3.amazonaws.com/1.5.0/cpu/torchvision-0.6.0-cp36-cp36m-linux_x86_64.whl
 
 # LDC sph2pipe
-RUN mkdir -p /home/sph2pipe \
-	&& cd /home/sph2pipe \
-	&& wget https://www.ldc.upenn.edu/sites/www.ldc.upenn.edu/files/ctools/sph2pipe_v2.5.tar.gz \
-	&& tar xzf sph2pipe_v2.5.tar.gz \
-	&& cd sph2pipe_v2.5 \
-	&& gcc -o sph2pipe *.c -lm \
-	&& cp sph2pipe /bin
+# RUN mkdir -p /home/sph2pipe \
+# 	&& cd /home/sph2pipe \
+# 	&& wget https://www.ldc.upenn.edu/sites/www.ldc.upenn.edu/files/ctools/sph2pipe_v2.5.tar.gz \
+# 	&& tar xzf sph2pipe_v2.5.tar.gz \
+# 	&& cd sph2pipe_v2.5 \
+# 	&& gcc -o sph2pipe *.c -lm \
+# 	&& cp sph2pipe /bin
 
 
 #RUN conda install -y pytorch torchvision torchaudio cudatoolkit=11.0 -c pytorch \

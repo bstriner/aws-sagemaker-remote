@@ -11,6 +11,51 @@ from aws_sagemaker_remote.util.fs import ensure_path
 from sagemaker.s3 import S3Downloader
 
 
+def list_objects(s3, url, **kwargs):
+    response = s3.list_objects_v2(
+        Bucket=url["Bucket"],
+        # Delimiter='string',
+        # EncodingType='url',
+        Prefix=url['Key'],
+        **kwargs
+        # FetchOwner=True|False,
+        # StartAfter='string',
+        # RequestPayer='requester',
+        # ExpectedBucketOwner='string'
+    )
+    if not 'Contents' in response:
+        print("reponse: ")
+        print(response)
+        raise ValueError("No contents in response")
+    return response
+
+
+def iterate_all_objects(s3, url,  MaxKeys=1000):
+    kwargs = {
+        "MaxKeys": MaxKeys,
+        's3': s3,
+        'url': url
+    }
+    while True:
+        response = list_objects(**kwargs)
+        for c in response['Contents']:
+            yield c
+        if response.get('IsTruncated', False):
+            assert response['NextContinuationToken']
+            kwargs["ContinuationToken"] = response['NextContinuationToken']
+        else:
+            break
+
+
+def list_all_objects(s3, url,  MaxKeys=1000):
+    return [
+        {
+            'Key': obj['Key'],
+            'Bucket':url['Bucket']
+        } for obj in iterate_all_objects(s3=s3, url=url, MaxKeys=MaxKeys)
+    ]
+
+
 def get_file(url, s3):
     s3_url = parse_s3(url)
     obj = s3.get_object(**s3_url)

@@ -1,7 +1,7 @@
-Training
-++++++++++++
+SageMaker Training
++++++++++++++++++++
 
-Processing jobs accept a set of one or more input file paths and write to a set of one or more output file paths. Ideal for file conversion or other data preparation tasks.
+Training jobs accept a set of one or more input file paths and output a model that can be deployed for inference.
 
 
 * Running locally, standard command line arguments for inputs and outputs are used as usual

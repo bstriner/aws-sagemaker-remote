@@ -60,6 +60,14 @@ aws\_sagemaker\_remote.training.train module
    :undoc-members:
    :show-inheritance:
 
+aws\_sagemaker\_remote.training.training\_inputs module
+-------------------------------------------------------
+
+.. automodule:: aws_sagemaker_remote.training.training_inputs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 
