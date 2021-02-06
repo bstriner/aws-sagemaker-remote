@@ -4,6 +4,7 @@ from click import UsageError
 from sagemaker.utils import name_from_base
 import os
 import json
+from aws_sagemaker_remote.util.cli_argument import cli_argument
 
 
 def transform_create(
@@ -23,6 +24,11 @@ def transform_create(
     payload_mb,
     output_json
 ):
+    input_s3 = cli_argument(input_s3, session=session)
+    base_job_name = cli_argument(base_job_name, session=session)
+    output_s3 = cli_argument(output_s3, session=session)
+    job_name = cli_argument(job_name, session=session)
+    model_name = cli_argument(model_name, session=session)
     if(isinstance(session, sagemaker.Session)):
         session = session.boto_session
     if not job_name:
