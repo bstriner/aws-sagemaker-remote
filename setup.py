@@ -3,7 +3,7 @@ import os
 with open(os.path.abspath(os.path.join(__file__, '../README.rst')), encoding='utf-8') as f:
     long_description = f.read()
 setup(name='aws-sagemaker-remote',
-      version='0.0.64',
+      version='0.0.65',
       author='Ben Striner',
       author_email="bstriner@gmail.com",
       url='https://github.com/bstriner/aws-sagemaker-remote',
@@ -17,6 +17,8 @@ setup(name='aws-sagemaker-remote',
           'ecr/processing/latest/Dockerfile',
           'ecr/training/latest/Dockerfile',
           'ecr/training/gpu/Dockerfile',
+          'Dockerfile',
+          '*Dockerfile',
           '*.sh',
           '*.txt',
           '*.yaml',
