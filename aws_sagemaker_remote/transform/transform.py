@@ -94,7 +94,7 @@ def transform_create(
     arn = response.get('TransformJobArn', None)
     print(f"ARN: {arn}")
     if output_json:
-        os.makedirs(os.path.dirname(output_json), exist_ok=True)
+        os.makedirs(os.path.dirname(os.path.abspath(output_json)), exist_ok=True)
         with open(output_json, 'w') as f:
             json.dump(response, f)
         print(f"Response saved as [{output_json}]")
