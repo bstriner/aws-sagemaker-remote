@@ -23,7 +23,6 @@ def build_audio_input_fn(sample_rate=None, channels=1):
         )
         print(f"json_input_wrap result: {type(data), len(data)}, extension: {extension}, mime: {mime}")
         if mime.startswith('audio/'):
-            #ext = mimetypes.guess_extension(mime)
             data = transcode_ffmpeg(
                 data=data,
                 input_fmt=extension,

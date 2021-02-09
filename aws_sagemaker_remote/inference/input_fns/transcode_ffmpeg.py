@@ -12,6 +12,8 @@ def transcode_ffmpeg(data, input_fmt='wav', sample_rate=None, channels=1, codec=
 
     Use pipes and run in-memory
     """
+    if input_fmt.startswith("."):
+        input_fmt = input_fmt[1:]
     assert input_fmt, "input_fmt is required in transcode_ffmpeg"
     if input_fmt.lower() in FIX_FORMATS:
         input_fmt = FIX_FORMATS[input_fmt.lower()]

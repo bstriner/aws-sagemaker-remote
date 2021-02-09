@@ -5,6 +5,8 @@ from aws_sagemaker_remote.args import bool_argument
 import sagemaker
 import boto3
 
+def split_string(s):
+    return [x for x in (s or "").split(",") if x]
 
 class BuildImageCommand(Command):
     def __init__(self, image: Image, help='Build docker image'):
@@ -26,6 +28,9 @@ class BuildImageCommand(Command):
         )
         parser.add_argument(
             '--accounts', default=",".join(self.image.accounts), type=str
+        )
+        parser.add_argument(
+            '--dependencies', default=",".join(self.image.dependencies), type=str
         )
         bool_argument(parser, '--force', default=True,
                       help="If image already exists in ECR, do nothing")
@@ -51,7 +56,8 @@ class BuildImageCommand(Command):
             # name=args.name,
             path=args.path,
             tag=args.tag,
-            accounts=args.accounts.split(","),
+            accounts=split_string(args.accounts),
+            dependencies=split_string(args.dependencies),
             download_files={
                 k: getattr(args, k) for k in self.image.download_files.keys()
             }

@@ -1,10 +1,10 @@
 import sagemaker
 import click
-import mimetypes
 import os
 from botocore.exceptions import ClientError
 from aws_sagemaker_remote.util.fields import get_field
 from aws_sagemaker_remote.inference.local import inference_local
+from aws_sagemaker_remote.inference.mime import MIME
 import shutil
 import glob
 
@@ -55,7 +55,7 @@ def endpoint_invoke(model_dir, name, model, variant, input, output, input_type, 
         # todo: pipe and cli arguments
         raise click.UsageError("input is required")
     if not input_type:
-        input_type, _ = mimetypes.guess_type(input)
+        input_type, _ = MIME.guess_type(input)
         if not input_type:
             raise click.UsageError(
                 'Cannot guess input type, specify input_type')

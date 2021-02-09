@@ -1,9 +1,8 @@
 import os
 import json
-import mimetypes
 import boto3
 
-from aws_sagemaker_remote.inference.mime import JSON_TYPES, MIME_KEYS
+from aws_sagemaker_remote.inference.mime import JSON_TYPES, MIME_KEYS, MIME
 from aws_sagemaker_remote.s3 import get_file_bytes
 
 
@@ -13,7 +12,7 @@ def get_mime(info, uri):
         if k in info and info[k]:
             mime = info[k]
     if not mime:
-        mime, _ = mimetypes.guess_type(uri)
+        mime, _ = MIME.guess_type(uri)
     return mime
 
 
@@ -61,7 +60,7 @@ def json_input_wrap(request_body, request_content_type, profile_name=None):
             raise ValueError(
                 'JSON requests should include an `s3` or `local` key')
     else:
-        extension = mimetypes.guess_extension(request_content_type)
+        extension = MIME.guess_extension(request_content_type)
         if not extension:
             print(f"Unknown extension for mime `{request_content_type}`")
         if extension and extension.startswith("."):

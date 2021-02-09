@@ -15,12 +15,13 @@ from aws_sagemaker_remote.util.sts import get_account
 
 
 class Image(object):
-    def __init__(self, path, tag, accounts=[], name=None, download_files=None):
+    def __init__(self, path, tag, accounts=None, name=None, download_files=None, dependencies=None):
         self.name = name
         self.path = path
         self.tag = tag
         self.accounts = accounts or []
         self.download_files = download_files or {}
+        self.dependencies = dependencies or []
 
     def __str__(self):
         accounts = ", ".join(self.accounts)
@@ -29,46 +30,46 @@ class Image(object):
 
 class Images(object):
     INFERENCE = Image(
-        name='inference',
+        name='aws-sagemaker-remote-inference:latest',
         path=os.path.abspath(os.path.join(__file__, '../inference')),
         tag='aws-sagemaker-remote-inference:latest',
         accounts=['763104351884']
     )
     INFERENCE_PY27GPUTF = Image(
-        name='inference:py27-gpu-tf',
+        name='aws-sagemaker-remote-inference:py27-gpu-tf',
         path=os.path.abspath(os.path.join(__file__, '../inference')),
         tag='aws-sagemaker-remote-inference:py27-gpu-tf',
         accounts=[]
     )
     INFERENCE_PY27TF = Image(
-        name='inference:py27-tf',
+        name='aws-sagemaker-remote-inference:py27-tf',
         path=os.path.abspath(os.path.join(__file__, '../inference')),
         tag='aws-sagemaker-remote-inference:py27-tf',
         accounts=[]
     )
 
     PROCESSING = Image(
-        name='processing',
+        name='aws-sagemaker-remote-processing:latest',
         path=os.path.abspath(os.path.join(__file__, '../processing')),
         tag='aws-sagemaker-remote-processing:latest',
         accounts=['763104351884']
     )
     PROCESSING_PY27GPUTF = Image(
-        name='processing:py27-gpu-tf',
+        name='aws-sagemaker-remote-processing:py27-gpu-tf',
         path=os.path.abspath(os.path.join(__file__, '../processing')),
         tag='aws-sagemaker-remote-processing:py27-gpu-tf',
         accounts=[]
     )
 
     TRAINING = Image(
-        name='training',
+        name='aws-sagemaker-remote-training:latest',
         path=os.path.abspath(os.path.join(__file__, '../training')),
         tag='aws-sagemaker-remote-training:latest',
         accounts=['763104351884']
     )
 
     TRAINING_GPU = Image(
-        name='training:gpu',
+        name='aws-sagemaker-remote-training:gpu',
         path=os.path.abspath(os.path.join(__file__, '../training')),
         tag='aws-sagemaker-remote-training:gpu',
         accounts=['763104351884']
@@ -83,6 +84,30 @@ class Images(object):
         TRAINING,
         TRAINING_GPU
     ]
+
+    @classmethod
+    def add_image(cls, image):
+        all = [
+            a for a in cls.ALL
+            if a.name != image.name
+        ]
+        all.append(image)
+        cls.ALL = all
+        return image
+
+    @classmethod
+    def get_image(cls, name):
+        for a in cls.ALL:
+            if a.name == name:
+                return a
+        return None
+
+    @classmethod
+    def get_image_by_tag(cls, tag):
+        for a in cls.ALL:
+            if a.tag == tag:
+                return a
+        return None
 
 # Repository management
 
@@ -218,16 +243,50 @@ def download_files(
     return ret
 
 
+def ecr_ensure_image_deps(image: Image, ecr, user_account, session, wsl=False):
+    ret = []
+    for dep in image.dependencies:
+        tag_account, tag_repo, tag_tag = parse_image(
+            dep, account=user_account)
+        img = get_image(ecr, tag_account, tag_repo, tag_tag)
+        if img is not None:
+            repo = ecr_ensure_repo(ecr, tag_account, tag_repo, user_account)
+            repo_uri = repo['repositoryUri']
+            full_uri = "{}:{}".format(repo_uri, tag_tag)
+            ret.append(full_uri)
+        else:
+            dep_image = Images.get_image_by_tag(dep)
+            if not dep_image:
+                raise ValueError(
+                    f"Image `{dep}` is a required dependency, does not exist, and is not in `Images.ALL` so can't be built")
+            ret.append(ecr_build_image(
+                image=dep_image,
+                session=session,
+                pull=True,
+                cache=True,
+                push=True,
+                wsl=wsl
+            ))
+    return ret
+
+
 def ecr_build_image(
-    image: Image, session, cache=True, pull=True, push=True,wsl=False
+    image: Image, session, cache=True, pull=True, push=True, wsl=False
 ):
     print(f"Building image: {image}")
+
     # todo: add region param
     ecr = session.client('ecr')  # , region_name='eu-west-1')
     region_name = session.region_name
     if not region_name:
         raise ValueError("No default region name in your AWS profile")
     user_account = get_account(session)
+    ecr_ensure_image_deps(
+        image=image,
+        ecr=ecr,
+        user_account=user_account,
+        session=session,
+        wsl=wsl)
     tag_account, tag_repo, tag_tag = parse_image(
         image.tag, account=user_account)
     repo = ecr_ensure_repo(ecr, tag_account, tag_repo, user_account)
@@ -251,18 +310,18 @@ def ecr_build_image(
     base_path = os.path.join(image.path, tag_tag)
     #base_path = image.path
     df = download_files(
-            files=image.download_files,
-            session=session,
-            base=base_path  # todo: optional temp dir if write only
-        )
+        files=image.download_files,
+        session=session,
+        base=base_path  # todo: optional temp dir if write only
+    )
     if wsl:
         tdf = {}
-        for k,v in df.items():
-            v = v.replace("\\","/")
+        for k, v in df.items():
+            v = v.replace("\\", "/")
             if v[1] == ":":
                 v = f"/mnt/{v[0]}{v[2:]}"
-            tdf[k]=v
-        df=tdf
+            tdf[k] = v
+        df = tdf
     buildargs.update(
         df
     )
@@ -275,7 +334,7 @@ def ecr_build_image(
             quiet=False,
             nocache=not cache,
             pull=pull,
-            #decode=True
+            # decode=True
         )
     except BuildError as e:
         for l in e.build_log:

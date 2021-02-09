@@ -1,4 +1,4 @@
-import mimetypes
+from aws_sagemaker_remote.inference.mime import MIME
 from aws_sagemaker_remote.commands import Command
 import importlib
 from argparse import ArgumentParser
@@ -29,7 +29,7 @@ def run_inference_module(
 ):
     input_type = config.input_type
     if not input_type:
-        input_type, _ = mimetypes.guess_type(config.input)
+        input_type, _ = MIME.guess_type(config.input)
 
     output_type = config.output_type
     if not output_type:
