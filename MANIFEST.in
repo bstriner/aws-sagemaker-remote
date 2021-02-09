@@ -1,0 +1,15 @@
+recursive-include \
+ aws_sagemaker_remote \
+ Dockerfile \
+ *.sh \
+ *.txt \
+ *.types \
+ *.yml \
+ *.yaml \
+ *.properties \
+ *.bat \
+ *.js \
+ *.py \
+ *.json
+global-exclude *.py[cod]
+prune aws_sagemaker_remote/lamb/js/node_modules
