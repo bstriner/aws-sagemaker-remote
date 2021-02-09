@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 from aws_sagemaker_remote.util.fields import get_field
 from aws_sagemaker_remote.inference.local import inference_local
 import shutil
+import glob
 
 
 def endpoint_describe(name, client, field=None):
@@ -38,7 +39,7 @@ def endpoint_create(config, name, client, force):
         if force:
             print("Deleting existing endpoint")
             endpoint_delete(name=name, client=client)
-            #todo: need to wait for delete to complete
+            # todo: need to wait for delete to complete
         else:
             raise click.UsageError(
                 'Specify force to overwrite existing endpoint')
@@ -49,63 +50,88 @@ def endpoint_create(config, name, client, force):
     print("Created endpoint [{}]".format(arn))
 
 
-def endpoint_invoke(model_dir, name, model, variant, input, output, input_type, output_type, runtime_client):
+def endpoint_invoke(model_dir, name, model, variant, input, output, input_type, input_glob, output_type, runtime_client):
     if not input:
         # todo: pipe and cli arguments
         raise click.UsageError("input is required")
     if not input_type:
-        input_type,_ = mimetypes.guess_type(input)
+        input_type, _ = mimetypes.guess_type(input)
         if not input_type:
             raise click.UsageError(
                 'Cannot guess input type, specify input_type')
     if not output_type:
         output_type = 'application/json'
+    if not os.path.exists(input):
+        raise ValueError(f"Path `{input}` does not exist")
+    if os.path.isfile(input):
+        if input_glob:
+            raise click.UsageError(
+                "--input-glob only valid if --input is a directory")
+        tasks = [
+            (input, output)
+        ]
+    else:
+        output = output or input
+        input_glob = input_glob or "**/*"
+        input_glob_path = os.path.join(input, input_glob)
+        files = glob.glob(input_glob_path, recursive=True)
+        tasks = [
+            (file, "{}{}.out".format(output, file[len(input):]))
+            for file in files
+        ]
+        if not len(tasks):
+            print("Warning: no matches: `{input_glob_path}`")
+
     if model_dir:
         if name or model or variant:
-            raise click.UsageError("If a local model_dir is specified, do not specify name, model or variant")
-        output_data = inference_local(model_dir=model_dir, input=input,
-        input_type=input_type,output_type=output_type, output=output)
+            raise click.UsageError(
+                "If a local model_dir is specified, do not specify name, model or variant")
+        return inference_local(model_dir=model_dir, tasks=tasks,
+                               input_type=input_type, output_type=output_type)
     else:
         kwargs = {}
         if model:
             kwargs['TargetModel'] = model
         if model:
             kwargs['TargetVariant'] = variant
-        with open(input, 'rb') as f:
-            print("Invoking [{}] with data from [{}] ([{}]->[{}])".format(
-                name,input, input_type, output_type
-            ))
-            response = runtime_client.invoke_endpoint(
-                EndpointName=name,
-                Body=f,
-                ContentType=input_type,
-                Accept=output_type,
-                # CustomAttributes='string',
-                **kwargs
-                # TargetModel=model,
-                # TargetVariant=variant
-            )
-        output_data = response['Body']
-        if output:
-            os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
-            """
-            if isinstance(result[0], str):
-                mode = 'w'
-            elif isinstance(result[0], bytes):
-                mode='wb'
-            else:
-                raise ValueError("Unknown result type: {}".format(type(result[0])))
-            with open(output, mode) as f:
-                for chunk in result:
-                    f.write(chunk)
-            """
+        ret = None
+        for input, output in tasks:
+            with open(input, 'rb') as f:
+                print("Invoking [{}] with data from [{}] ([{}]->[{}])".format(
+                    name, input, input_type, output_type
+                ))
+                response = runtime_client.invoke_endpoint(
+                    EndpointName=name,
+                    Body=f,
+                    ContentType=input_type,
+                    Accept=output_type,
+                    # CustomAttributes='string',
+                    **kwargs
+                    # TargetModel=model,
+                    # TargetVariant=variant
+                )
+            output_data = response['Body']
+            if output:
+                os.makedirs(os.path.dirname(
+                    os.path.abspath(output)), exist_ok=True)
+                """
+                if isinstance(result[0], str):
+                    mode = 'w'
+                elif isinstance(result[0], bytes):
+                    mode='wb'
+                else:
+                    raise ValueError("Unknown result type: {}".format(type(result[0])))
+                with open(output, mode) as f:
+                    for chunk in result:
+                        f.write(chunk)
+                """
 
-            with open(output, 'wb') as f:
-                shutil.copyfileobj(output_data, f)
-            print("Saved to {}".format(output))
-            return None
-        else:
-            return output_data
+                with open(output, 'wb') as f:
+                    shutil.copyfileobj(output_data, f)
+                print("Saved to {}".format(output))
+            else:
+                ret = output_data
+        return ret
 
 
 if __name__ == '__main__':

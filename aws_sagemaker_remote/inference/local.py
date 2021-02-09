@@ -68,11 +68,16 @@ def inference_run(handler, context, input, output, input_type, output_type):
         return result
 
 
-def inference_local(model_dir, input, output, input_type, output_type):
+def inference_local(model_dir, tasks, input_type, output_type):
     handler, context = inference_handler(model_dir=model_dir)
-    return inference_run(
-        handler=handler, context=context, input=input,
-        output=output, output_type=output_type, input_type=input_type)
+    ret = None
+    for input, output in tasks:
+        ret = inference_run(
+            handler=handler,
+            context=context, input=input,
+            output=output, output_type=output_type,
+            input_type=input_type)
+    return ret
 
 
 if __name__ == '__main__':

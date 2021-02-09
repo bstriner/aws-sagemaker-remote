@@ -460,11 +460,12 @@ def endpoint_describe_cli(name, field):
 @click.option('--model', type=str, default=None)
 @click.option('--variant', type=str, default=None)
 @click.option('--input', type=str, default=None)
+@click.option('--input-glob', type=str, default=None, help='glob pattern if input is directory (e.g., `**/*.wav`)')
 @click.option('--output', type=str, default=None)
 @click.option('--input-type', type=str, default=None)
 @click.option('--output-type', type=str, default=None)
 @click.option('--model-dir', type=str, default=None)
-def endpoint_invoke_cli(name, model, variant, input, output, input_type, output_type, model_dir):
+def endpoint_invoke_cli(name, model, variant, input, input_glob, output, input_type, output_type, model_dir):
     """
     Invoke a SageMaker endpoint or a SageMaker-style model in a local directory
     """
@@ -475,6 +476,7 @@ def endpoint_invoke_cli(name, model, variant, input, output, input_type, output_
         model=cli_argument(model, session=session),
         variant=variant,
         input=input,
+        input_glob=input_glob,
         output=output,
         input_type=input_type,
         output_type=output_type,
