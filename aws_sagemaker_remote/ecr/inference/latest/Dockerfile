@@ -82,6 +82,8 @@ RUN pip install  --upgrade --no-cache-dir \
    opencv-python \
    mxnet-model-server \
    sagemaker-containers pillow awscli multi-model-server
+
+RUN pip install  --upgrade --no-cache-dir aws-sagemaker-remote pytorch-igniter matplotlib webrtcvad
 #RUN pip install  --upgrade 
 
 # Uninstall and re-install torch and torchvision from the PyTorch website

@@ -25,24 +25,46 @@ FIX_FORMATS = {
 }
 
 if __name__ == '__main__':
-    for k, v in [
-        ("Base", mimetypes),
-        ("Mod", MIME)
-    ]:
-        print(k)
-        print(v.guess_all_extensions('audio/wav'))
-        print(v.guess_all_extensions('audio/x-wav'))
-        print(v.guess_all_extensions('audio/wave'))
-        print(v.guess_all_extensions('audio/x-wave'))
-        print(v.guess_all_extensions('audio/ogg'))
-        print(v.guess_all_extensions('audio/webm'))
-        print(v.guess_all_extensions('audio/weba'))
-        print(v.guess_type('path/file.wav'))
-        print(v.guess_type('path/file.webm'))
-        print(v.guess_type('path/file.weba'))
-        print(v.guess_type('path/file.oga'))
-        print(v.guess_type('path/file.ogg'))
-        print(v.guess_type('path/file.opus'))
+    types = [
+        'audio/wav',
+        'audio/x-wav',
+        'audio/wave',
+        'audio/x-wave',
+        'audio/ogg',
+        'audio/oga',
+        'audio/webm',
+        'audio/weba',
+        'audio/mp4',
+        'audio/mp3',
+        'audio/mpeg',
+        'audio/mpeg3',
+        'audio/x-mpeg-3',
+    ]
+    exts = [
+        'wav',
+        'webm',
+        'weba',
+        'oga',
+        'ogg',
+        'opus',
+        'mp3',
+        'mp4',
+        'mpeg'
+    ]
+    for t in types:
+        for k, v in [
+            ("Base", mimetypes),
+            ("Mod", MIME)
+        ]:
+                print(f"db {k}, mime {t}: {v.guess_all_extensions(t)}")
+    for e in exts:
+        for k, v in [
+            ("Base", mimetypes),
+            ("Mod", MIME)
+        ]:
+            f = f"path/file.{e}"
+            print(f"db {k}, ext {e}: {v.guess_type(f)}")
+
 
     # print(next(mimetypes.types_map.items().__iter__()))
     # print(next(mimetypes.suffix_map.items().__iter__()))

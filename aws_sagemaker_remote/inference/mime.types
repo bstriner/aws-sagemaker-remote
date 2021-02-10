@@ -4,4 +4,12 @@ audio/wave wav
 audio/wav wav
 audio/webm webm weba
 audio/weba webm weba
+audio/opus ogg oga opus
+audio/oga ogg oga opus
 audio/ogg ogg oga opus
+audio/x-mpeg-3 mp3 mpeg
+audio/mp3 mp3 mpeg mp2 mpa
+audio/mpeg3 mp3 mpeg mp2 mpa
+audio/mpeg mp3 mpeg mp2 mpa
+video/mp4 mp4 m4v
+audio/mp4 mp4 m4a
