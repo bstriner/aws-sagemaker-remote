@@ -51,9 +51,9 @@ RUN curl -L -o ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-lat
 RUN conda init && conda init bash
 RUN echo "conda activate" >> ~/.bashrc
 RUN /opt/conda/bin/conda install -y \
-   -c anaconda \
    -c pytorch \
    -c conda-forge \
+   -c anaconda \
    python=$PYTHON_VERSION \
    cython \
    ipython \
@@ -81,9 +81,11 @@ RUN pip install  --upgrade --no-cache-dir \
    "sagemaker-pytorch-inference<2" \
    opencv-python \
    mxnet-model-server \
-   sagemaker-containers pillow awscli multi-model-server
+   sagemaker-containers pillow awscli multi-model-server \
+   aws-sagemaker-remote pytorch-igniter matplotlib webrtcvad mlflow
 
-RUN pip install  --upgrade --no-cache-dir aws-sagemaker-remote pytorch-igniter matplotlib webrtcvad
+#RUN conda upgrade -y -c pytorch -c conda-forge pytorch torchvision torchaudio cpuonly
+
 #RUN pip install  --upgrade 
 
 # Uninstall and re-install torch and torchvision from the PyTorch website
