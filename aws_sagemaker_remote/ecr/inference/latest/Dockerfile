@@ -82,7 +82,8 @@ RUN pip install  --upgrade --no-cache-dir \
    opencv-python \
    mxnet-model-server \
    sagemaker-containers pillow awscli multi-model-server \
-   aws-sagemaker-remote pytorch-igniter matplotlib webrtcvad mlflow
+   aws-sagemaker-remote pytorch-igniter matplotlib webrtcvad mlflow \
+   pyAudioAnalysis joblib eyed3 pydub tqdm
 
 #RUN conda upgrade -y -c pytorch -c conda-forge pytorch torchvision torchaudio cpuonly
 
