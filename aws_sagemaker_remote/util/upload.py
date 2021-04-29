@@ -8,8 +8,10 @@ from sagemaker.utils import _tmpdir
 import boto3
 from urllib.parse import urlparse
 
+from aws_sagemaker_remote.util.cli_argument import cli_argument
 
 def upload(src, dst, gz, session: sagemaker.Session, root='.'):
+    dst = cli_argument(dst, session=session)
     if not os.path.exists(src):
         raise click.UsageError("Source must exist")
     if not dst.startswith('s3://'):
