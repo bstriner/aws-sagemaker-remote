@@ -40,8 +40,8 @@ RUN apt-get update && apt-get install -y \
    apt-transport-https ca-certificates libcurl3-gnutls \
    openmpi-bin \
    libopenmpi-dev \
-   libhogweed4 \
-   ffmpeg
+   libhogweed4 
+   #ffmpeg
 
 RUN curl -L -o ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
    && chmod +x ~/miniconda.sh \
@@ -67,7 +67,8 @@ RUN /opt/conda/bin/conda install -y \
    pandas \
    h5py \
    requests \
-   pyyaml 
+   pyyaml \
+   ffmpeg
 #   && /opt/conda/bin/conda clean -ya
 #RUN apt-get update
 #opencv breaks apt
@@ -103,7 +104,8 @@ COPY config.properties /home/model-server
 
 RUN chmod +x /usr/local/bin/dockerd-entrypoint.py
 
-
+# fix for ffmpeg versions
+RUN ln -s /opt/conda/lib/libopenh264.so /opt/conda/lib/libopenh264.so.5
 #RUN curl https://aws-dlc-licenses.s3.amazonaws.com/pytorch-1.5.0/license.txt -o /license.txt
 
 #RUN apt-get update

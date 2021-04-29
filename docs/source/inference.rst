@@ -48,4 +48,9 @@ Create, invoke, then destroy a remote endpoint
    md5sum demo/test_image.jpg
    md5sum output/result/result_image.jpg
    
-   
+Build docker images for models
+
+.. code-block: bash
+
+   aws-sagemaker-remote ecr build aws-sagemaker-remote-inference:latest
+
